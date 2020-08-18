@@ -1,2 +1,4 @@
-client/client
-server/server
+client.exe
+server.exe
+simple/simple.pb.go
+simple/simple_grpc.pb.go
