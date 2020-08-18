@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option go_package = "github.com/tuxcanfly/loggy/simple;simple";
+
+package simple;
+
+service SimpleService {
+  rpc SimpleRPC (stream SimpleData) returns (stream SimpleData) {}
+}
+
+message SimpleData {
+  string msg = 1;
+}
