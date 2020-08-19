@@ -7,7 +7,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	pb "github.com/tuxcanfly/loggy/simple"
+	pb "github.com/tuxcanfly/loggy/loggy"
 )
 
 func main() {
@@ -44,14 +44,14 @@ func main() {
 		log.Fatalf("failed to add app: %s", err)
 	}
 
-	client := pb.NewSimpleServiceClient(conn)
-	stream, err := client.SimpleRPC(context.Background())
+	client := pb.NewLoggyServiceClient(conn)
+	stream, err := client.LoggyServer(context.Background())
 	waitc := make(chan struct{})
 
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			msg := &pb.SimpleData{Id: instanceID.Id, Msg: time.Now().Format(time.RFC3339Nano)}
+			msg := &pb.LoggyMessage{Id: instanceID.Id, Msg: time.Now().Format(time.RFC3339Nano)}
 			log.Printf("%d: %q\n", msg.Id, msg.Msg)
 			stream.Send(msg)
 		}

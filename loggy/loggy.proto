@@ -1,10 +1,11 @@
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 
-option go_package = "github.com/tuxcanfly/loggy/simple;simple";
+option go_package = "github.com/tuxcanfly/loggy/loggy;loggy";
 
-package simple;
+package loggy;
 
 message Application {
     string id = 1;
@@ -51,11 +52,17 @@ service InstanceService {
     rpc Insert (Instance) returns (InstanceId) {}
 }
 
-service SimpleService {
-  rpc SimpleRPC (stream SimpleData) returns (stream SimpleData) {}
+message ClientId {
+    int32 id = 1;
 }
 
-message SimpleData {
+service LoggyService {
+  rpc LoggyServer (stream LoggyMessage) returns (google.protobuf.Empty) {}
+  rpc RegisterClient(InstanceId) returns (ClientId) {}
+  rpc LoggyClient (ClientId) returns (stream LoggyMessage) {}
+}
+
+message LoggyMessage {
   int32 id = 1;
   string msg = 2;
   google.protobuf.Timestamp timestamp = 3;

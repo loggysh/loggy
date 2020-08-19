@@ -46,7 +46,4 @@ make builds all the files, then run server.exe and client.exe in different termi
 android client
 ===============
 
-client needs to generate a protobuf from `simple/simple.proto`
-
-Create a Client from `SimpleService`, generate a stream from `SimpleRPC`, and
-send a `SimpleData` on the stream.
+client needs to generate a protobuf from `loggy/loggy.proto`

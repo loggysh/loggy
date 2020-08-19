@@ -1,4 +1,3 @@
-client.exe
-server.exe
-simple/simple.pb.go
-simple/simple_grpc.pb.go
+*.exe
+loggy/loggy.pb.go
+loggy/loggy_grpc.pb.go
