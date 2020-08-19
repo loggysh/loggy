@@ -7,13 +7,17 @@ loggy implements a simple streaming grpc service.
 install
 =======
 
+    export GO111MODULE=on
+
+    export PATH="$PATH:$(go env GOPATH)/bin"
+
+    brew install protobuf
+
     go get -u google.golang.org/grpc
 
     go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
 
     go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
-
-    install protobuf-dev
 
 demo
 ====
