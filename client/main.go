@@ -23,10 +23,9 @@ func main() {
 
 	go func() {
 		for {
-			log.Println("Sleeping...")
 			time.Sleep(time.Second)
-			msg := &pb.SimpleData{Msg: time.Now().Format(time.RFC3339Nano)}
-			log.Printf("msg: %q\n", msg.Msg)
+			msg := &pb.SimpleData{Id: 101, Msg: time.Now().Format(time.RFC3339Nano)}
+			log.Printf("%d: %q\n", msg.Id, msg.Msg)
 			stream.Send(msg)
 		}
 	}()

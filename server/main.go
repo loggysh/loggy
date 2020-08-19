@@ -17,14 +17,13 @@ func (s *simpleServer) SimpleRPC(stream pb.SimpleService_SimpleRPCServer) error 
 	log.Println("Started stream")
 	for {
 		in, err := stream.Recv()
-		log.Println("Received value")
 		if err == io.EOF {
 			return nil
 		}
 		if err != nil {
 			return err
 		}
-		log.Println("Got " + in.Msg)
+		log.Printf("%d: %s\n", in.Id, in.Msg)
 	}
 }
 

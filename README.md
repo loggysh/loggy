@@ -3,6 +3,16 @@ loggy
 
 loggy implements a simple streaming grpc service.
 
+
+install
+=======
+
+    go get -u google.golang.org/grpc
+
+    go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+
+    go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
 demo
 ====
 
