@@ -6,6 +6,51 @@ option go_package = "github.com/tuxcanfly/loggy/simple;simple";
 
 package simple;
 
+message Application {
+    string id = 1;
+    string name = 2;
+    string icon = 4;
+}
+
+message ApplicationId {
+    string id = 1;
+}
+
+service ApplicationService {
+    rpc Get (ApplicationId) returns (Application) {}
+    rpc Insert (Application) returns (ApplicationId) {}
+}
+
+message Device {
+    int32 id = 1;
+    string details = 2;
+}
+
+message DeviceId {
+    int32 id = 1;
+}
+
+service DeviceService {
+    rpc Get (DeviceId) returns (Device) {}
+    rpc Insert (Device) returns (DeviceId) {}
+}
+
+message Instance {
+    int32 id = 1;
+    int32 deviceid = 2;
+    string appid = 3;
+}
+
+message InstanceId {
+    int32 id = 1;
+    string appid = 2;
+}
+
+service InstanceService {
+    rpc Get (InstanceId) returns (Instance) {}
+    rpc Insert (Instance) returns (InstanceId) {}
+}
+
 service SimpleService {
   rpc SimpleRPC (stream SimpleData) returns (stream SimpleData) {}
 }
