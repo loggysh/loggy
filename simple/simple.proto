@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/tuxcanfly/loggy/simple;simple";
 
 package simple;
@@ -11,4 +13,5 @@ service SimpleService {
 message SimpleData {
   int32 id = 1;
   string msg = 2;
+  google.protobuf.Timestamp timestamp = 3;
 }
