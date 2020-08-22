@@ -8,4 +8,4 @@ all:
 	rm -rf github.com
 
 clean:
-	rm -rf github.com loggy/loggy.pb.go loggy/loggy_grpc.pb.go *.exe
+	rm -rf github.com loggy/loggy.pb.go loggy/loggy_grpc.pb.go *.exe test.db

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
 
@@ -19,20 +21,25 @@ func main() {
 
 	client := pb.NewLoggyServiceClient(conn)
 	appid, err := client.InsertApplication(context.Background(), &pb.Application{
-		Id:   "com.swiggy.android",
-		Name: "Swiggy",
-		Icon: "swiggy.svg",
+		PackageName: "com.swiggy.android",
+		Name:        "Swiggy",
+		Icon:        "swiggy.svg",
 	})
 	if err != nil {
 		log.Fatalf("failed to add app: %s", err)
 	}
 
+	fmt.Printf("Application ID: %s\n", appid)
+
 	deviceid, err := client.InsertDevice(context.Background(), &pb.Device{
-		Details: map[string]string{"name": "Xiaomi Note 5"},
+		Id:      uuid.NewV4().String(),
+		Details: "{'name': 'Xiaomi Note 5'}",
 	})
 	if err != nil {
-		log.Fatalf("failed to add app: %s", err)
+		log.Fatalf("failed to add device: %s", err)
 	}
+
+	fmt.Printf("Device ID: %s\n", deviceid)
 
 	instanceid, err := client.InsertInstance(context.Background(), &pb.Instance{
 		Deviceid: deviceid.Id,
@@ -41,6 +48,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to add app: %s", err)
 	}
+
+	fmt.Printf("Instance ID: %s\n", instanceid)
 
 	stream, err := client.Send(context.Background())
 	waitc := make(chan struct{})

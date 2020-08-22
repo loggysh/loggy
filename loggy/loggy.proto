@@ -12,7 +12,8 @@ package loggy;
 
 message Application {
     string id = 1;
-    string name = 2;
+    string package_name = 2;
+    string name = 3;
     string icon = 4;
 }
 
@@ -26,7 +27,7 @@ message ApplicationList {
 
 message Device {
     string id = 1;
-    map<string, string> details = 2;
+    string details = 2;
 }
 
 message DeviceId {
@@ -45,7 +46,7 @@ message InstanceId {
 }
 
 message ReceiverId {
-    string id = 1;
+    int32 id = 1;
 }
 
 message LoggyMessage {

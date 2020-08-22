@@ -1,3 +1,4 @@
 *.exe
 loggy/loggy.pb.go
 loggy/loggy_grpc.pb.go
+test.db

@@ -4,11 +4,11 @@ go 1.14
 
 require (
 	github.com/golang/protobuf v1.4.2
-	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc
-	golang.org/x/sys v0.0.0-20200819091447-39769834ee22 // indirect
-	golang.org/x/text v0.3.3 // indirect
-	google.golang.org/genproto v0.0.0-20200815001618-f69a88009b70 // indirect
+	github.com/jinzhu/gorm v1.9.16
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
+	github.com/satori/go.uuid v1.2.0
+	golang.org/x/net v0.0.0-20200822124328-c89045814202
 	google.golang.org/grpc v1.31.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v0.0.0-20200818224027-0f73133e3aa3 // indirect
 	google.golang.org/protobuf v1.25.0
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 )

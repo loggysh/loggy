@@ -2,82 +2,144 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log"
 	"net"
-	"strconv"
+	"time"
 
 	"google.golang.org/grpc"
 
+	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
-type application struct {
-	id   string
-	name string
-	icon string
+// Base contains common columns for all tables.
+type Base struct {
+	ID        uuid.UUID `gorm:"type:uuid;primary_key;"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
 }
 
-type device struct {
-	id      int32
-	details string
+// BeforeCreate will set a UUID rather than numeric ID.
+func (base *Base) BeforeCreate(scope *gorm.Scope) error {
+	uuid := uuid.NewV4()
+	return scope.SetColumn("ID", uuid)
 }
 
-type instance struct {
-	id       int32
-	appid    string
-	deviceid int32
+type Application struct {
+	Base
+	PackageName string
+	Name        string
+	Icon        string
+}
+
+type Device struct {
+	ID        uuid.UUID `gorm:"type:uuid;primary_key;"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
+	Details   string
+}
+
+type Instance struct {
+	Base
+	AppID    uuid.UUID `gorm:"type:uuid;column:application_foreign_key;not null;"`
+	DeviceID uuid.UUID `gorm:"type:uuid;column:device_foreign_key;not null;"`
 }
 
 type loggyServer struct {
-	apps      map[string]*pb.Application
-	devices   map[string]*pb.Device
-	instances map[string]*pb.Instance
-	receivers map[string]chan *pb.LoggyMessage
-	listeners map[string][]string // instanceid -> []receivers
+	db        *gorm.DB
+	receivers map[int32]chan *pb.LoggyMessage
+	listeners map[string][]int32 // instanceid -> []receivers
 }
 
 func (l *loggyServer) GetApplication(ctx context.Context, appid *pb.ApplicationId) (*pb.Application, error) {
-	if app, ok := l.apps[appid.Id]; ok {
-		return app, nil
+	app := &Application{}
+	if l.db.Where("id = ?", appid.Id).First(&app).RecordNotFound() {
+		return nil, nil
 	}
-	return nil, nil
+	return &pb.Application{
+		Id:          app.ID.String(),
+		PackageName: app.PackageName,
+		Name:        app.Name,
+		Icon:        app.Icon,
+	}, nil
 }
 
 func (l *loggyServer) InsertApplication(ctx context.Context, app *pb.Application) (*pb.ApplicationId, error) {
-	id := strconv.Itoa(len(l.apps) + 1)
-	l.apps[id] = app
-	return &pb.ApplicationId{Id: id}, nil
-}
-
-func (l *loggyServer) GetDevice(ctx context.Context, deviceid *pb.DeviceId) (*pb.Device, error) {
-	if device, ok := l.devices[deviceid.Id]; ok {
-		return device, nil
+	entry := Application{
+		PackageName: app.PackageName,
+		Name:        app.Name,
+		Icon:        app.Icon,
 	}
-	return nil, nil
-}
-
-func (l *loggyServer) InsertDevice(ctx context.Context, device *pb.Device) (*pb.DeviceId, error) {
-	id := strconv.Itoa(len(l.devices) + 1)
-	l.devices[id] = device
-	return &pb.DeviceId{Id: id}, nil
-}
-
-func (l *loggyServer) GetInstance(ctx context.Context, instanceid *pb.InstanceId) (*pb.Instance, error) {
-	if instance, ok := l.instances[instanceid.Id]; ok {
-		return instance, nil
+	if l.db.Create(&entry).Error != nil {
+		return nil, errors.New("unable to create app")
 	}
-	return nil, nil
+	return &pb.ApplicationId{Id: entry.ID.String()}, nil
 }
 
-func (l *loggyServer) InsertInstance(ctx context.Context, instance *pb.Instance) (*pb.InstanceId, error) {
-	id := strconv.Itoa(len(l.instances) + 1)
-	l.instances[id] = instance
-	return &pb.InstanceId{Id: id}, nil
+func (l *loggyServer) GetDevice(ctx context.Context, devid *pb.DeviceId) (*pb.Device, error) {
+	dev := &Device{}
+	if l.db.Where("id = ?", dev.ID).First(&dev).RecordNotFound() {
+		return nil, nil
+	}
+	return &pb.Device{
+		Details: dev.Details,
+	}, nil
+}
+
+func (l *loggyServer) InsertDevice(ctx context.Context, dev *pb.Device) (*pb.DeviceId, error) {
+	deviceid, err := uuid.FromString(dev.Id)
+	if err != nil {
+		return nil, err
+	}
+	entry := Device{
+		ID:      deviceid,
+		Details: dev.Details,
+	}
+	if l.db.Create(&entry).Error != nil {
+		return nil, errors.New("unable to create device")
+	}
+	return &pb.DeviceId{Id: entry.ID.String()}, nil
+}
+
+func (l *loggyServer) GetInstance(ctx context.Context, instid *pb.InstanceId) (*pb.Instance, error) {
+	inst := &Instance{}
+	if l.db.Where("id = ?", inst.ID).First(&inst).RecordNotFound() {
+		return nil, nil
+	}
+	return &pb.Instance{
+		Deviceid: inst.DeviceID.String(),
+		Appid:    inst.AppID.String(),
+	}, nil
+}
+
+func (l *loggyServer) InsertInstance(ctx context.Context, inst *pb.Instance) (*pb.InstanceId, error) {
+	deviceid, err := uuid.FromString(inst.Deviceid)
+	if err != nil {
+		return nil, err
+	}
+	appid, err := uuid.FromString(inst.Appid)
+	if err != nil {
+		return nil, err
+	}
+	entry := Instance{
+		DeviceID: deviceid,
+		AppID:    appid,
+	}
+	if l.db.Create(&entry).Error != nil {
+		return nil, errors.New("unable to create device")
+	}
+	return &pb.InstanceId{Id: entry.ID.String()}, nil
 }
 
 func (l *loggyServer) Register(ctx context.Context, instanceid *pb.InstanceId) (*pb.ReceiverId, error) {
-	id := string(len(l.receivers) + 1)
+	id := int32(len(l.receivers) + 1)
 	l.receivers[id] = make(chan *pb.LoggyMessage, 100)
 	l.listeners[instanceid.Id] = append(l.listeners[instanceid.Id], id)
 	return &pb.ReceiverId{Id: id}, nil
@@ -112,13 +174,22 @@ func (l *loggyServer) Receive(receiverid *pb.ReceiverId, stream pb.LoggyService_
 }
 
 func main() {
+	db, err := gorm.Open("sqlite3", "test.db")
+	if err != nil {
+		panic("failed to connect database")
+	}
+	defer db.Close()
+
+	// Migrate the schema
+	db.AutoMigrate(&Application{})
+	db.AutoMigrate(&Device{})
+	db.AutoMigrate(&Instance{})
+
 	grpcServer := grpc.NewServer()
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
-		apps:      make(map[string]*pb.Application),
-		devices:   make(map[string]*pb.Device),
-		instances: make(map[string]*pb.Instance),
-		receivers: make(map[string]chan *pb.LoggyMessage),
-		listeners: make(map[string][]string),
+		db:        db,
+		receivers: make(map[int32]chan *pb.LoggyMessage),
+		listeners: make(map[string][]int32),
 	})
 
 	l, err := net.Listen("tcp", ":50111")
