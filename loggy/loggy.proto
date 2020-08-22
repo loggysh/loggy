@@ -44,7 +44,7 @@ message InstanceId {
     string appid = 2;
 }
 
-message RecieverId {
+message ReceiverId {
     string id = 1;
 }
 
@@ -74,8 +74,8 @@ service LoggyServerService {
     rpc InsertInstance (Instance) returns (InstanceId) {}
 
     rpc LoggyServer (stream LoggyMessage) returns (google.protobuf.Empty) {}
-    rpc GetReciever (InstanceId) returns (RecieverId) {}
-    rpc RegisterReciever (RecieverId) returns (stream LoggyMessage) {}
+    rpc GetReceiver (InstanceId) returns (ReceiverId) {}
+    rpc RegisterReceiver (ReceiverId) returns (stream LoggyMessage) {}
 }
 
 service LoggySenderService {
@@ -84,10 +84,10 @@ service LoggySenderService {
     rpc RegisterSender (stream LoggyMessage) returns (google.protobuf.Empty) {}
 }
 
-service LoggyRecieverService {
+service LoggyReceiverService {
     rpc GetApplication (ApplicationId) returns (Application) {}
     rpc InsertApplication (Application) returns (ApplicationId) {}
 
-    rpc GetReciever (InstanceId) returns (RecieverId) {}
-    rpc RegisterReciever (RecieverId) returns (stream LoggyMessage) {}
+    rpc GetReceiver (InstanceId) returns (ReceiverId) {}
+    rpc RegisterReceiver (ReceiverId) returns (stream LoggyMessage) {}
 }
