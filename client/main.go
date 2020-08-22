@@ -17,8 +17,8 @@ func main() {
 	}
 	defer conn.Close()
 
-	appClient := pb.NewApplicationServiceClient(conn)
-	appId, err := appClient.Insert(context.Background(), &pb.Application{
+	client := pb.NewLoggyServiceClient(conn)
+	appid, err := client.InsertApplication(context.Background(), &pb.Application{
 		Id:   "com.swiggy.android",
 		Name: "Swiggy",
 		Icon: "swiggy.svg",
@@ -27,32 +27,29 @@ func main() {
 		log.Fatalf("failed to add app: %s", err)
 	}
 
-	deviceClient := pb.NewDeviceServiceClient(conn)
-	deviceId, err := deviceClient.Insert(context.Background(), &pb.Device{
-		Details: "Xiaomi Note 5",
+	deviceid, err := client.InsertDevice(context.Background(), &pb.Device{
+		Details: map[string]string{"name": "Xiaomi Note 5"},
 	})
 	if err != nil {
 		log.Fatalf("failed to add app: %s", err)
 	}
 
-	instanceClient := pb.NewInstanceServiceClient(conn)
-	instanceID, err := instanceClient.Insert(context.Background(), &pb.Instance{
-		Deviceid: deviceId.Id,
-		Appid:    appId.Id,
+	instanceid, err := client.InsertInstance(context.Background(), &pb.Instance{
+		Deviceid: deviceid.Id,
+		Appid:    appid.Id,
 	})
 	if err != nil {
 		log.Fatalf("failed to add app: %s", err)
 	}
 
-	client := pb.NewLoggyServiceClient(conn)
-	stream, err := client.LoggyServer(context.Background())
+	stream, err := client.Send(context.Background())
 	waitc := make(chan struct{})
 
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			msg := &pb.LoggyMessage{Id: instanceID.Id, Msg: time.Now().Format(time.RFC3339Nano)}
-			log.Printf("%d: %q\n", msg.Id, msg.Msg)
+			msg := &pb.LoggyMessage{Instanceid: instanceid.Id, Msg: time.Now().Format(time.RFC3339Nano)}
+			log.Printf("%s: %q\n", msg.Instanceid, msg.Msg)
 			stream.Send(msg)
 		}
 	}()

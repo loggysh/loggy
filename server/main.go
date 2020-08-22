@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"strconv"
 
 	"google.golang.org/grpc"
 
@@ -28,60 +29,61 @@ type instance struct {
 	deviceid int32
 }
 
-type applicationServer struct {
-	apps map[string]*pb.Application
+type loggyServer struct {
+	apps      map[string]*pb.Application
+	devices   map[string]*pb.Device
+	instances map[string]*pb.Instance
+	receivers map[string]chan *pb.LoggyMessage
+	listeners map[string][]string // instanceid -> []receivers
 }
 
-func (a *applicationServer) Get(ctx context.Context, appid *pb.ApplicationId) (*pb.Application, error) {
-	return a.apps[appid.Id], nil
+func (l *loggyServer) GetApplication(ctx context.Context, appid *pb.ApplicationId) (*pb.Application, error) {
+	if app, ok := l.apps[appid.Id]; ok {
+		return app, nil
+	}
+	return nil, nil
 }
 
-func (a *applicationServer) Insert(ctx context.Context, app *pb.Application) (*pb.ApplicationId, error) {
-	a.apps[app.Id] = app
-	return &pb.ApplicationId{Id: app.Id}, nil
+func (l *loggyServer) InsertApplication(ctx context.Context, app *pb.Application) (*pb.ApplicationId, error) {
+	id := strconv.Itoa(len(l.apps) + 1)
+	l.apps[id] = app
+	return &pb.ApplicationId{Id: id}, nil
 }
 
-type deviceServer struct {
-	devices map[int32]*pb.Device
+func (l *loggyServer) GetDevice(ctx context.Context, deviceid *pb.DeviceId) (*pb.Device, error) {
+	if device, ok := l.devices[deviceid.Id]; ok {
+		return device, nil
+	}
+	return nil, nil
 }
 
-func (d *deviceServer) Get(ctx context.Context, deviceid *pb.DeviceId) (*pb.Device, error) {
-	return d.devices[deviceid.Id], nil
-}
-
-func (d *deviceServer) Insert(ctx context.Context, device *pb.Device) (*pb.DeviceId, error) {
-	id := int32(len(d.devices) + 1)
-	d.devices[id] = device
+func (l *loggyServer) InsertDevice(ctx context.Context, device *pb.Device) (*pb.DeviceId, error) {
+	id := strconv.Itoa(len(l.devices) + 1)
+	l.devices[id] = device
 	return &pb.DeviceId{Id: id}, nil
 }
 
-type instanceServer struct {
-	instances map[int32]*pb.Instance
+func (l *loggyServer) GetInstance(ctx context.Context, instanceid *pb.InstanceId) (*pb.Instance, error) {
+	if instance, ok := l.instances[instanceid.Id]; ok {
+		return instance, nil
+	}
+	return nil, nil
 }
 
-func (i *instanceServer) Get(ctx context.Context, instanceid *pb.InstanceId) (*pb.Instance, error) {
-	return i.instances[instanceid.Id], nil
-}
-
-func (i *instanceServer) Insert(ctx context.Context, instance *pb.Instance) (*pb.InstanceId, error) {
-	id := int32(len(i.instances) + 1)
-	i.instances[id] = instance
+func (l *loggyServer) InsertInstance(ctx context.Context, instance *pb.Instance) (*pb.InstanceId, error) {
+	id := strconv.Itoa(len(l.instances) + 1)
+	l.instances[id] = instance
 	return &pb.InstanceId{Id: id}, nil
 }
 
-type loggyServer struct {
-	clients   map[int32]chan *pb.LoggyMessage
-	listeners map[int32][]int32 // instanceid -> []clients
-}
-
-func (l *loggyServer) RegisterClient(ctx context.Context, instanceid *pb.InstanceId) (*pb.ClientId, error) {
-	id := int32(len(l.clients) + 1)
-	l.clients[id] = make(chan *pb.LoggyMessage, 100)
+func (l *loggyServer) Register(ctx context.Context, instanceid *pb.InstanceId) (*pb.ReceiverId, error) {
+	id := string(len(l.receivers) + 1)
+	l.receivers[id] = make(chan *pb.LoggyMessage, 100)
 	l.listeners[instanceid.Id] = append(l.listeners[instanceid.Id], id)
-	return &pb.ClientId{Id: id}, nil
+	return &pb.ReceiverId{Id: id}, nil
 }
 
-func (l *loggyServer) LoggyServer(stream pb.LoggyService_LoggyServerServer) error {
+func (l *loggyServer) Send(stream pb.LoggyService_SendServer) error {
 	log.Println("Started stream")
 	for {
 		in, err := stream.Recv()
@@ -91,18 +93,18 @@ func (l *loggyServer) LoggyServer(stream pb.LoggyService_LoggyServerServer) erro
 		if err != nil {
 			return err
 		}
-		log.Printf("%d: %s\n", in.Id, in.Msg)
-		listeners := l.listeners[in.Id]
-		for _, clientid := range listeners {
-			if client, ok := l.clients[clientid]; ok {
+		log.Printf("%s: %s\n", in.Instanceid, in.Msg)
+		listeners := l.listeners[in.Instanceid]
+		for _, receiverid := range listeners {
+			if client, ok := l.receivers[receiverid]; ok {
 				client <- in
 			}
 		}
 	}
 }
 
-func (l *loggyServer) LoggyClient(clientid *pb.ClientId, stream pb.LoggyService_LoggyClientServer) error {
-	client := l.clients[clientid.Id]
+func (l *loggyServer) Receive(receiverid *pb.ReceiverId, stream pb.LoggyService_ReceiveServer) error {
+	client := l.receivers[receiverid.Id]
 	for in := range client {
 		stream.Send(in)
 	}
@@ -111,10 +113,13 @@ func (l *loggyServer) LoggyClient(clientid *pb.ClientId, stream pb.LoggyService_
 
 func main() {
 	grpcServer := grpc.NewServer()
-	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{clients: make(map[int32]chan *pb.LoggyMessage), listeners: make(map[int32][]int32)})
-	pb.RegisterApplicationServiceServer(grpcServer, &applicationServer{apps: make(map[string]*pb.Application)})
-	pb.RegisterDeviceServiceServer(grpcServer, &deviceServer{devices: make(map[int32]*pb.Device)})
-	pb.RegisterInstanceServiceServer(grpcServer, &instanceServer{instances: make(map[int32]*pb.Instance)})
+	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
+		apps:      make(map[string]*pb.Application),
+		devices:   make(map[string]*pb.Device),
+		instances: make(map[string]*pb.Instance),
+		receivers: make(map[string]chan *pb.LoggyMessage),
+		listeners: make(map[string][]string),
+	})
 
 	l, err := net.Listen("tcp", ":50111")
 	if err != nil {
