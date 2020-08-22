@@ -63,7 +63,7 @@ message LoggyMessage {
   Level level = 5;
 }
 
-service LoggyServerService {
+service LoggyService {
     rpc GetApplication (ApplicationId) returns (Application) {}
     rpc InsertApplication (Application) returns (ApplicationId) {}
 
@@ -73,21 +73,7 @@ service LoggyServerService {
     rpc GetInstance (InstanceId) returns (Instance) {}
     rpc InsertInstance (Instance) returns (InstanceId) {}
 
-    rpc LoggyServer (stream LoggyMessage) returns (google.protobuf.Empty) {}
-    rpc GetReceiver (InstanceId) returns (ReceiverId) {}
-    rpc RegisterReceiver (ReceiverId) returns (stream LoggyMessage) {}
-}
-
-service LoggySenderService {
-    rpc InsertInstance (Instance) returns (InstanceId) {}
-    rpc InsertDevice (Device) returns (DeviceId) {}
-    rpc RegisterSender (stream LoggyMessage) returns (google.protobuf.Empty) {}
-}
-
-service LoggyReceiverService {
-    rpc GetApplication (ApplicationId) returns (Application) {}
-    rpc InsertApplication (Application) returns (ApplicationId) {}
-
-    rpc GetReceiver (InstanceId) returns (ReceiverId) {}
-    rpc RegisterReceiver (ReceiverId) returns (stream LoggyMessage) {}
+    rpc Send (stream LoggyMessage) returns (google.protobuf.Empty) {}
+    rpc Register (InstanceId) returns (ReceiverId) {}
+    rpc Receive (ReceiverId) returns (stream LoggyMessage) {}
 }
