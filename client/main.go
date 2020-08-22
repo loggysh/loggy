@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
 
@@ -17,42 +19,50 @@ func main() {
 	}
 	defer conn.Close()
 
-	appClient := pb.NewApplicationServiceClient(conn)
-	appId, err := appClient.Insert(context.Background(), &pb.Application{
-		Id:   "com.swiggy.android",
-		Name: "Swiggy",
-		Icon: "swiggy.svg",
-	})
-	if err != nil {
-		log.Fatalf("failed to add app: %s", err)
-	}
-
-	deviceClient := pb.NewDeviceServiceClient(conn)
-	deviceId, err := deviceClient.Insert(context.Background(), &pb.Device{
-		Details: "Xiaomi Note 5",
-	})
-	if err != nil {
-		log.Fatalf("failed to add app: %s", err)
-	}
-
-	instanceClient := pb.NewInstanceServiceClient(conn)
-	instanceID, err := instanceClient.Insert(context.Background(), &pb.Instance{
-		Deviceid: deviceId.Id,
-		Appid:    appId.Id,
-	})
-	if err != nil {
-		log.Fatalf("failed to add app: %s", err)
-	}
-
 	client := pb.NewLoggyServiceClient(conn)
-	stream, err := client.LoggyServer(context.Background())
+	appid, err := client.InsertApplication(context.Background(), &pb.Application{
+		PackageName: "com.swiggy.android",
+		Name:        "Swiggy",
+		Icon:        "swiggy.svg",
+	})
+	if err != nil {
+		log.Fatalf("failed to add app: %s", err)
+	}
+
+	fmt.Printf("Application ID: %s\n", appid)
+
+	deviceid, err := client.InsertDevice(context.Background(), &pb.Device{
+		Id:      uuid.NewV4().String(),
+		Details: "{'name': 'Xiaomi Note 5'}",
+	})
+	if err != nil {
+		log.Fatalf("failed to add device: %s", err)
+	}
+
+	fmt.Printf("Device ID: %s\n", deviceid)
+
+	instanceid, err := client.InsertInstance(context.Background(), &pb.Instance{
+		Deviceid: deviceid.Id,
+		Appid:    appid.Id,
+	})
+	if err != nil {
+		log.Fatalf("failed to add app: %s", err)
+	}
+
+	fmt.Printf("Instance ID: %s\n", instanceid)
+
+	stream, err := client.Send(context.Background())
 	waitc := make(chan struct{})
 
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			msg := &pb.LoggyMessage{Id: instanceID.Id, Msg: time.Now().Format(time.RFC3339Nano)}
-			log.Printf("%d: %q\n", msg.Id, msg.Msg)
+			msg := &pb.LoggyMessage{
+				Instanceid: instanceid.Id,
+				Sessionid:  uuid.NewV4().String(),
+				Msg:        time.Now().Format(time.RFC3339Nano),
+			}
+			log.Printf("Instance: %s, Session: %s: %s\n", msg.Instanceid, msg.Sessionid, msg.Msg)
 			stream.Send(msg)
 		}
 	}()

@@ -4,12 +4,16 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 
 option go_package = "github.com/tuxcanfly/loggy/loggy;loggy";
+option java_multiple_files = true;
+option java_package = "sh.loggy";
+option java_outer_classname = "LoggyProto";
 
 package loggy;
 
 message Application {
     string id = 1;
-    string name = 2;
+    string package_name = 2;
+    string name = 3;
     string icon = 4;
 }
 
@@ -17,53 +21,59 @@ message ApplicationId {
     string id = 1;
 }
 
-service ApplicationService {
-    rpc Get (ApplicationId) returns (Application) {}
-    rpc Insert (Application) returns (ApplicationId) {}
+message ApplicationList {
+    repeated Application apps = 1;
 }
 
 message Device {
-    int32 id = 1;
+    string id = 1;
     string details = 2;
 }
 
 message DeviceId {
-    int32 id = 1;
-}
-
-service DeviceService {
-    rpc Get (DeviceId) returns (Device) {}
-    rpc Insert (Device) returns (DeviceId) {}
+    string id = 1;
 }
 
 message Instance {
-    int32 id = 1;
-    int32 deviceid = 2;
+    string id = 1;
+    string deviceid = 2;
     string appid = 3;
 }
 
 message InstanceId {
+    string id = 1;
+}
+
+message ReceiverId {
     int32 id = 1;
-    string appid = 2;
-}
-
-service InstanceService {
-    rpc Get (InstanceId) returns (Instance) {}
-    rpc Insert (Instance) returns (InstanceId) {}
-}
-
-message ClientId {
-    int32 id = 1;
-}
-
-service LoggyService {
-  rpc LoggyServer (stream LoggyMessage) returns (google.protobuf.Empty) {}
-  rpc RegisterClient(InstanceId) returns (ClientId) {}
-  rpc LoggyClient (ClientId) returns (stream LoggyMessage) {}
 }
 
 message LoggyMessage {
-  int32 id = 1;
-  string msg = 2;
-  google.protobuf.Timestamp timestamp = 3;
+  string instanceid = 1;
+  string sessionid = 2;
+  string msg = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  enum Level {
+    DEBUG = 0;
+    INFO = 1;
+    WARN = 2;
+    ERROR = 3;
+    CRASH = 4;
+  }
+  Level level = 5;
+}
+
+service LoggyService {
+    rpc GetApplication (ApplicationId) returns (Application) {}
+    rpc InsertApplication (Application) returns (ApplicationId) {}
+
+    rpc GetDevice (DeviceId) returns (Device) {}
+    rpc InsertDevice (Device) returns (DeviceId) {}
+
+    rpc GetInstance (InstanceId) returns (Instance) {}
+    rpc InsertInstance (Instance) returns (InstanceId) {}
+
+    rpc Send (stream LoggyMessage) returns (google.protobuf.Empty) {}
+    rpc Register (InstanceId) returns (ReceiverId) {}
+    rpc Receive (ReceiverId) returns (stream LoggyMessage) {}
 }
