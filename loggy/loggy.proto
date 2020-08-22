@@ -42,7 +42,6 @@ message Instance {
 
 message InstanceId {
     string id = 1;
-    string appid = 2;
 }
 
 message ReceiverId {

@@ -57,8 +57,12 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			msg := &pb.LoggyMessage{Instanceid: instanceid.Id, Msg: time.Now().Format(time.RFC3339Nano)}
-			log.Printf("%s: %q\n", msg.Instanceid, msg.Msg)
+			msg := &pb.LoggyMessage{
+				Instanceid: instanceid.Id,
+				Sessionid:  uuid.NewV4().String(),
+				Msg:        time.Now().Format(time.RFC3339Nano),
+			}
+			log.Printf("Instance: %s, Session: %s: %s\n", msg.Instanceid, msg.Sessionid, msg.Msg)
 			stream.Send(msg)
 		}
 	}()

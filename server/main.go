@@ -61,7 +61,7 @@ type loggyServer struct {
 func (l *loggyServer) GetApplication(ctx context.Context, appid *pb.ApplicationId) (*pb.Application, error) {
 	app := &Application{}
 	if l.db.Where("id = ?", appid.Id).First(&app).RecordNotFound() {
-		return nil, nil
+		return nil, errors.New("app not found")
 	}
 	return &pb.Application{
 		Id:          app.ID.String(),
@@ -85,8 +85,8 @@ func (l *loggyServer) InsertApplication(ctx context.Context, app *pb.Application
 
 func (l *loggyServer) GetDevice(ctx context.Context, devid *pb.DeviceId) (*pb.Device, error) {
 	dev := &Device{}
-	if l.db.Where("id = ?", dev.ID).First(&dev).RecordNotFound() {
-		return nil, nil
+	if l.db.Where("id = ?", devid.Id).First(&dev).RecordNotFound() {
+		return nil, errors.New("device not found")
 	}
 	return &pb.Device{
 		Details: dev.Details,
@@ -108,14 +108,15 @@ func (l *loggyServer) InsertDevice(ctx context.Context, dev *pb.Device) (*pb.Dev
 	return &pb.DeviceId{Id: entry.ID.String()}, nil
 }
 
-func (l *loggyServer) GetInstance(ctx context.Context, instid *pb.InstanceId) (*pb.Instance, error) {
-	inst := &Instance{}
-	if l.db.Where("id = ?", inst.ID).First(&inst).RecordNotFound() {
-		return nil, nil
+func (l *loggyServer) GetInstance(ctx context.Context, instanceid *pb.InstanceId) (*pb.Instance, error) {
+	instance := &Instance{}
+	if l.db.Where("id = ?", instanceid.Id).First(&instance).RecordNotFound() {
+		return nil, errors.New("instance not found")
 	}
 	return &pb.Instance{
-		Deviceid: inst.DeviceID.String(),
-		Appid:    inst.AppID.String(),
+		Id:       instance.ID.String(),
+		Deviceid: instance.DeviceID.String(),
+		Appid:    instance.AppID.String(),
 	}, nil
 }
 
@@ -133,7 +134,7 @@ func (l *loggyServer) InsertInstance(ctx context.Context, inst *pb.Instance) (*p
 		AppID:    appid,
 	}
 	if l.db.Create(&entry).Error != nil {
-		return nil, errors.New("unable to create device")
+		return nil, errors.New("unable to create instance")
 	}
 	return &pb.InstanceId{Id: entry.ID.String()}, nil
 }
@@ -155,7 +156,7 @@ func (l *loggyServer) Send(stream pb.LoggyService_SendServer) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("%s: %s\n", in.Instanceid, in.Msg)
+		log.Printf("Instance: %s, Session: %s: %s\n", in.Instanceid, in.Sessionid, in.Msg)
 		listeners := l.listeners[in.Instanceid]
 		for _, receiverid := range listeners {
 			if client, ok := l.receivers[receiverid]; ok {
