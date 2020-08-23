@@ -41,7 +41,7 @@ func main() {
 
 	fmt.Printf("Device ID: %s\n", deviceid)
 
-	instanceid, err := client.InsertInstance(context.Background(), &pb.Instance{
+	instanceid, err := client.GetOrInsertInstance(context.Background(), &pb.Instance{
 		Deviceid: deviceid.Id,
 		Appid:    appid.Id,
 	})

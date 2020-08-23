@@ -76,8 +76,8 @@ service LoggyService {
     rpc InsertDevice (Device) returns (DeviceId) {}
     rpc ListDevices (ApplicationId) returns (DeviceList) {}
 
+    rpc GetOrInsertInstance (Instance) returns (InstanceId) {}
     rpc GetInstance (InstanceId) returns (Instance) {}
-    rpc InsertInstance (Instance) returns (InstanceId) {}
 
     rpc Send (stream LoggyMessage) returns (google.protobuf.Empty) {}
     rpc Register (InstanceId) returns (ReceiverId) {}

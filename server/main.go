@@ -49,8 +49,8 @@ type Device struct {
 
 type Instance struct {
 	Base
-	AppID    uuid.UUID `gorm:"type:uuid;column:application_foreign_key;not null;"`
-	DeviceID uuid.UUID `gorm:"type:uuid;column:device_foreign_key;not null;"`
+	AppID    uuid.UUID `gorm:"primary_key;type:uuid;column:application_foreign_key;not null;"`
+	DeviceID uuid.UUID `gorm:"primary_key;type:uuid;column:device_foreign_key;not null;"`
 }
 
 type loggyServer struct {
@@ -141,6 +141,26 @@ func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) 
 	return &pb.DeviceList{Devices: devices}, nil
 }
 
+func (l *loggyServer) GetOrInsertInstance(ctx context.Context, instance *pb.Instance) (*pb.InstanceId, error) {
+	deviceid, err := uuid.FromString(instance.Deviceid)
+	if err != nil {
+		return nil, err
+	}
+	appid, err := uuid.FromString(instance.Appid)
+	if err != nil {
+		return nil, err
+	}
+	entry := &Instance{
+		AppID:    appid,
+		DeviceID: deviceid,
+	}
+	inst := &Instance{}
+	l.db.Where(entry).FirstOrCreate(&inst)
+	return &pb.InstanceId{
+		Id: inst.ID.String(),
+	}, nil
+}
+
 func (l *loggyServer) GetInstance(ctx context.Context, instanceid *pb.InstanceId) (*pb.Instance, error) {
 	instance := &Instance{}
 	if l.db.Where("id = ?", instanceid.Id).First(&instance).RecordNotFound() {
@@ -151,25 +171,6 @@ func (l *loggyServer) GetInstance(ctx context.Context, instanceid *pb.InstanceId
 		Deviceid: instance.DeviceID.String(),
 		Appid:    instance.AppID.String(),
 	}, nil
-}
-
-func (l *loggyServer) InsertInstance(ctx context.Context, inst *pb.Instance) (*pb.InstanceId, error) {
-	deviceid, err := uuid.FromString(inst.Deviceid)
-	if err != nil {
-		return nil, err
-	}
-	appid, err := uuid.FromString(inst.Appid)
-	if err != nil {
-		return nil, err
-	}
-	entry := Instance{
-		DeviceID: deviceid,
-		AppID:    appid,
-	}
-	if l.db.Create(&entry).Error != nil {
-		return nil, errors.New("unable to create instance")
-	}
-	return &pb.InstanceId{Id: entry.ID.String()}, nil
 }
 
 func (l *loggyServer) Register(ctx context.Context, instanceid *pb.InstanceId) (*pb.ReceiverId, error) {
