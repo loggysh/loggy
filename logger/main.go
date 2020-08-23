@@ -61,7 +61,7 @@ func main() {
 		}
 
 		logfilepath := path.Join(*prefix, app.Id, device.Id, instance.Id)
-		err = os.MkdirAll(logfilepath, 0700)
+		err = os.MkdirAll(logfilepath, 0777)
 		if err != nil {
 			log.Fatalf("failed to mkdir: %s", err)
 		}
