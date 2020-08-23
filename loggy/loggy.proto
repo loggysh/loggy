@@ -48,6 +48,10 @@ message InstanceId {
     string id = 1;
 }
 
+message InstanceList {
+  repeated Instance instances =  1;
+}
+
 message ReceiverId {
     int32 id = 1;
 }
@@ -78,8 +82,11 @@ service LoggyService {
 
     rpc GetOrInsertInstance (Instance) returns (InstanceId) {}
     rpc GetInstance (InstanceId) returns (Instance) {}
+    rpc ListInstances (google.protobuf.Empty) returns (InstanceList) {}
 
     rpc Send (stream LoggyMessage) returns (google.protobuf.Empty) {}
-    rpc Register (InstanceId) returns (ReceiverId) {}
+    rpc Notify (google.protobuf.Empty) returns (stream Instance) {}
+    rpc RegisterSend (InstanceId) returns (google.protobuf.Empty) {}
+    rpc RegisterReceive (InstanceId) returns (ReceiverId) {}
     rpc Receive (ReceiverId) returns (stream LoggyMessage) {}
 }

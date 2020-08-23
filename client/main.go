@@ -51,6 +51,11 @@ func main() {
 
 	fmt.Printf("Instance ID: %s\n", instanceid)
 
+	_, err = client.RegisterSend(context.Background(), &pb.InstanceId{Id: instanceid.Id})
+	if err != nil {
+		log.Fatalf("failed to register: %s", err)
+	}
+
 	stream, err := client.Send(context.Background())
 	waitc := make(chan struct{})
 

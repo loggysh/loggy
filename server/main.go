@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -54,9 +55,10 @@ type Instance struct {
 }
 
 type loggyServer struct {
-	db        *gorm.DB
-	receivers map[int32]chan *pb.LoggyMessage
-	listeners map[string][]int32 // instanceid -> []receivers
+	db            *gorm.DB
+	notifications chan *pb.Instance
+	receivers     map[int32]chan *pb.LoggyMessage
+	listeners     map[string][]int32 // instanceid -> []receivers
 }
 
 func (l *loggyServer) GetApplication(ctx context.Context, appid *pb.ApplicationId) (*pb.Application, error) {
@@ -173,7 +175,43 @@ func (l *loggyServer) GetInstance(ctx context.Context, instanceid *pb.InstanceId
 	}, nil
 }
 
-func (l *loggyServer) Register(ctx context.Context, instanceid *pb.InstanceId) (*pb.ReceiverId, error) {
+func (l *loggyServer) ListInstances(ctx context.Context, e *empty.Empty) (*pb.InstanceList, error) {
+	var entries []*Instance
+	var instances []*pb.Instance
+	l.db.Find(&entries)
+	for _, instance := range entries {
+		instances = append(instances, &pb.Instance{
+			Id:       instance.ID.String(),
+			Deviceid: instance.DeviceID.String(),
+			Appid:    instance.AppID.String(),
+		})
+	}
+	return &pb.InstanceList{Instances: instances}, nil
+}
+
+func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer) error {
+	log.Println("Listening")
+	for instance := range l.notifications {
+		fmt.Println(instance)
+		stream.Send(instance)
+	}
+	return nil
+}
+
+func (l *loggyServer) RegisterSend(ctx context.Context, instanceid *pb.InstanceId) (*empty.Empty, error) {
+	instance := &Instance{}
+	if l.db.Where("id = ?", instanceid.Id).First(&instance).RecordNotFound() {
+		return nil, errors.New("instance not found")
+	}
+	l.notifications <- &pb.Instance{
+		Id:       instance.ID.String(),
+		Deviceid: instance.DeviceID.String(),
+		Appid:    instance.AppID.String(),
+	}
+	return &empty.Empty{}, nil
+}
+
+func (l *loggyServer) RegisterReceive(ctx context.Context, instanceid *pb.InstanceId) (*pb.ReceiverId, error) {
 	id := int32(len(l.receivers) + 1)
 	l.receivers[id] = make(chan *pb.LoggyMessage, 100)
 	l.listeners[instanceid.Id] = append(l.listeners[instanceid.Id], id)
@@ -222,9 +260,10 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
-		db:        db,
-		receivers: make(map[int32]chan *pb.LoggyMessage),
-		listeners: make(map[string][]int32),
+		db:            db,
+		notifications: make(chan *pb.Instance, 100),
+		receivers:     make(map[int32]chan *pb.LoggyMessage),
+		listeners:     make(map[string][]int32),
 	})
 
 	l, err := net.Listen("tcp", ":50111")
