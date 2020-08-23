@@ -41,6 +41,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to connect: %s", err)
 		}
+		fmt.Println(instance)
+
 		app, err := client.GetApplication(context.Background(), &pb.ApplicationId{Id: instance.Appid})
 		if err != nil {
 			log.Fatalf("failed to app: %s", err)
@@ -60,11 +62,15 @@ func main() {
 			log.Fatalf("failed to register: %s", err)
 		}
 
+		fmt.Println(receiverid)
+
 		logfilepath := path.Join(*prefix, app.Id, device.Id, instance.Id)
 		err = os.MkdirAll(logfilepath, 0777)
 		if err != nil {
 			log.Fatalf("failed to mkdir: %s", err)
 		}
+
+		fmt.Println(logfilepath)
 
 		go func(instance *pb.Instance, app *pb.Application, device *pb.Device, receiverid *pb.ReceiverId, logfilepath string) {
 			stream, err := client.Receive(context.Background(), receiverid)
