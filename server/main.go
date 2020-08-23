@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	empty "github.com/golang/protobuf/ptypes/empty"
 	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
 
@@ -83,6 +84,21 @@ func (l *loggyServer) InsertApplication(ctx context.Context, app *pb.Application
 	return &pb.ApplicationId{Id: entry.ID.String()}, nil
 }
 
+func (l *loggyServer) ListApplications(ctx context.Context, e *empty.Empty) (*pb.ApplicationList, error) {
+	var entries []*Application
+	var apps []*pb.Application
+	l.db.Find(&entries)
+	for _, app := range entries {
+		apps = append(apps, &pb.Application{
+			Id:          app.ID.String(),
+			PackageName: app.PackageName,
+			Name:        app.Name,
+			Icon:        app.Icon,
+		})
+	}
+	return &pb.ApplicationList{Apps: apps}, nil
+}
+
 func (l *loggyServer) GetDevice(ctx context.Context, devid *pb.DeviceId) (*pb.Device, error) {
 	dev := &Device{}
 	if l.db.Where("id = ?", devid.Id).First(&dev).RecordNotFound() {
@@ -106,6 +122,23 @@ func (l *loggyServer) InsertDevice(ctx context.Context, dev *pb.Device) (*pb.Dev
 		return nil, errors.New("unable to create device")
 	}
 	return &pb.DeviceId{Id: entry.ID.String()}, nil
+}
+
+func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) (*pb.DeviceList, error) {
+	var entries []*Device
+	var devices []*pb.Device
+	var instances []*Instance
+	l.db.Where("application_foreign_key = ?", appid.Id).Find(&instances)
+	for _, instance := range instances {
+		l.db.Where("id = ?", instance.DeviceID).Find(&entries)
+	}
+	for _, device := range entries {
+		devices = append(devices, &pb.Device{
+			Id:      device.ID.String(),
+			Details: device.Details,
+		})
+	}
+	return &pb.DeviceList{Devices: devices}, nil
 }
 
 func (l *loggyServer) GetInstance(ctx context.Context, instanceid *pb.InstanceId) (*pb.Instance, error) {

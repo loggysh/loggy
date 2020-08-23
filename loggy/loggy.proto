@@ -34,6 +34,10 @@ message DeviceId {
     string id = 1;
 }
 
+message DeviceList {
+  repeated Device devices = 1;
+}
+
 message Instance {
     string id = 1;
     string deviceid = 2;
@@ -66,9 +70,11 @@ message LoggyMessage {
 service LoggyService {
     rpc GetApplication (ApplicationId) returns (Application) {}
     rpc InsertApplication (Application) returns (ApplicationId) {}
+    rpc ListApplications (google.protobuf.Empty) returns (ApplicationList) {}
 
     rpc GetDevice (DeviceId) returns (Device) {}
     rpc InsertDevice (Device) returns (DeviceId) {}
+    rpc ListDevices (ApplicationId) returns (DeviceList) {}
 
     rpc GetInstance (InstanceId) returns (Instance) {}
     rpc InsertInstance (Instance) returns (InstanceId) {}
