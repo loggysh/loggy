@@ -102,23 +102,23 @@ func (l *loggyServer) ListApplications(ctx context.Context, e *empty.Empty) (*pb
 }
 
 func (l *loggyServer) GetDevice(ctx context.Context, devid *pb.DeviceId) (*pb.Device, error) {
-	dev := &Device{}
-	if l.db.Where("id = ?", devid.Id).First(&dev).RecordNotFound() {
+	device := &Device{}
+	if l.db.Where("id = ?", devid.Id).First(&device).RecordNotFound() {
 		return nil, errors.New("device not found")
 	}
 	return &pb.Device{
-		Details: dev.Details,
+		Details: device.Details,
 	}, nil
 }
 
-func (l *loggyServer) InsertDevice(ctx context.Context, dev *pb.Device) (*pb.DeviceId, error) {
-	deviceid, err := uuid.FromString(dev.Id)
+func (l *loggyServer) InsertDevice(ctx context.Context, device *pb.Device) (*pb.DeviceId, error) {
+	deviceid, err := uuid.FromString(device.Id)
 	if err != nil {
 		return nil, err
 	}
 	entry := Device{
 		ID:      deviceid,
-		Details: dev.Details,
+		Details: device.Details,
 	}
 	if l.db.Create(&entry).Error != nil {
 		return nil, errors.New("unable to create device")
@@ -156,10 +156,10 @@ func (l *loggyServer) GetOrInsertInstance(ctx context.Context, instance *pb.Inst
 		AppID:    appid,
 		DeviceID: deviceid,
 	}
-	inst := &Instance{}
-	l.db.Where(entry).FirstOrCreate(&inst)
+	exists := &Instance{}
+	l.db.Where(entry).FirstOrCreate(&exists)
 	return &pb.InstanceId{
-		Id: inst.ID.String(),
+		Id: exists.ID.String(),
 	}, nil
 }
 
