@@ -71,6 +71,19 @@ message LoggyMessage {
   Level level = 5;
 }
 
+message Query {
+  string query = 1;
+}
+
+message Result {
+  string result = 1;
+  string instanceid = 2;
+}
+
+message Results {
+  repeated Result results = 1;
+}
+
 service LoggyService {
     rpc GetApplication (ApplicationId) returns (Application) {}
     rpc InsertApplication (Application) returns (ApplicationId) {}
@@ -89,4 +102,5 @@ service LoggyService {
     rpc RegisterSend (InstanceId) returns (google.protobuf.Empty) {}
     rpc RegisterReceive (InstanceId) returns (ReceiverId) {}
     rpc Receive (ReceiverId) returns (stream LoggyMessage) {}
+    rpc Search (Query) returns (Results) {}
 }

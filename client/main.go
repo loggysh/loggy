@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"math/rand"
+	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -12,6 +16,36 @@ import (
 	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
+
+var words []string
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+	words = readAvailableDictionary()
+}
+
+func readAvailableDictionary() []string {
+	file, err := os.Open("/usr/share/dict/words")
+	if err != nil {
+		panic(err)
+	}
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	return strings.Split(string(bytes), "\n")
+}
+
+func babble() string {
+	pieces := []string{}
+	for i := 0; i < 7; i++ {
+		pieces = append(pieces, words[rand.Int()%len(words)])
+	}
+
+	return strings.Join(pieces, " ")
+}
 
 func main() {
 	conn, err := grpc.Dial("localhost:50111", grpc.WithInsecure())
@@ -66,7 +100,7 @@ func main() {
 			msg := &pb.LoggyMessage{
 				Instanceid: instanceid.Id,
 				Sessionid:  uuid.NewV4().String(),
-				Msg:        time.Now().Format(time.RFC3339Nano),
+				Msg:        babble(),
 				Timestamp:  ptypes.TimestampNow(),
 			}
 			log.Printf("Instance: %s, Session: %s: %s\n", msg.Instanceid, msg.Sessionid, msg.Msg)

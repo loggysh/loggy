@@ -10,11 +10,12 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/blevesearch/bleve"
 	"github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
 
-func logger(prefix, server *string) {
+func logger(prefix, server *string, indexer bleve.Index) {
 	conn, err := grpc.Dial(fmt.Sprintf("%s:50111", *server), grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err)
@@ -67,7 +68,8 @@ func logger(prefix, server *string) {
 
 		log.Println(logfilepath)
 
-		go func(instance *pb.Instance, app *pb.Application, device *pb.Device, receiverid *pb.ReceiverId, logfilepath string) {
+		go func(instance *pb.Instance, app *pb.Application, device *pb.Device, receiverid *pb.ReceiverId,
+			logfilepath string, indexer bleve.Index) {
 			stream, err := client.Receive(context.Background(), receiverid)
 			if err != nil {
 				log.Printf("failed to receive: %s", err)
@@ -81,6 +83,7 @@ func logger(prefix, server *string) {
 			}
 			defer logfile.Close()
 
+			var linenumber int
 			for {
 				in, err := stream.Recv()
 				if err == io.EOF {
@@ -89,13 +92,15 @@ func logger(prefix, server *string) {
 				if err != nil {
 					log.Printf("failed to connect: %s", err)
 				}
+				linenumber++
 				logline := fmt.Sprintf("%v: level = %v, app = %v; device = %v; msg = %v\n",
 					in.Timestamp.AsTime(), in.Level, app, device, in.Msg)
 				log.Printf(logline)
+				indexer.Index(fmt.Sprintf("%s: %d", instance.Id, linenumber), logline)
 				logfile.WriteString(logline)
 			}
 			stream.CloseSend()
-		}(instance, app, device, receiverid, logfilepath)
+		}(instance, app, device, receiverid, logfilepath, indexer)
 		stream.CloseSend()
 	}
 }

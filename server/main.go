@@ -11,6 +11,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/blevesearch/bleve"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
@@ -56,6 +57,7 @@ type Instance struct {
 
 type loggyServer struct {
 	db            *gorm.DB
+	indexer       bleve.Index
 	notifications chan *pb.Instance
 	receivers     map[int32]chan *pb.LoggyMessage
 	listeners     map[string][]int32 // instanceid -> []receivers
@@ -245,6 +247,20 @@ func (l *loggyServer) Receive(receiverid *pb.ReceiverId, stream pb.LoggyService_
 	return nil
 }
 
+func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.Results, error) {
+	result, err := l.indexer.Search(bleve.NewSearchRequest(bleve.NewQueryStringQuery(query.Query)))
+	if err != nil {
+		log.Println(err)
+	}
+	var results []*pb.Result
+	for _, hit := range result.Hits {
+		results = append(results, &pb.Result{
+			Instanceid: hit.ID,
+		})
+	}
+	return &pb.Results{Results: results}, nil
+}
+
 func main() {
 	prefix := flag.String("prefix", "logs", "Prefix for logs. (logs)")
 	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
@@ -252,7 +268,7 @@ func main() {
 
 	db, err := gorm.Open("sqlite3", "test.db")
 	if err != nil {
-		panic("failed to connect database")
+		log.Fatalf("failed to connect database: %v", err)
 	}
 	defer db.Close()
 
@@ -261,10 +277,17 @@ func main() {
 	db.AutoMigrate(&Device{})
 	db.AutoMigrate(&Instance{})
 
+	mapping := bleve.NewIndexMapping()
+	indexer, err := bleve.NewMemOnly(mapping)
+	if err != nil {
+		log.Fatalf("failed to create index: %v", err)
+	}
+
 	grpcServer := grpc.NewServer()
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
 		db:            db,
-		notifications: make(chan *pb.Instance, 100),
+		indexer:       indexer,
+		notifications: make(chan *pb.Instance),
 		receivers:     make(map[int32]chan *pb.LoggyMessage),
 		listeners:     make(map[string][]int32),
 	})
@@ -274,8 +297,8 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	log.Println("Listening on tcp://localhost:50111")
-	go logger(prefix, server)
-	grpcServer.Serve(l)
+	go logger(prefix, server, indexer)
 
+	log.Println("Listening on tcp://localhost:50111")
+	grpcServer.Serve(l)
 }
