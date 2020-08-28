@@ -75,7 +75,7 @@ func logger(prefix, server *string) {
 
 			log.Printf("Started logger for instance: %s\n", instance.Id)
 
-			logfile, err := os.OpenFile(path.Join(logfilepath, "logs.txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			logfile, err := os.OpenFile(path.Join(logfilepath, fmt.Sprintf("%s.txt", instance.Id)), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
 				log.Printf("failed to open file: %s", err)
 			}
@@ -91,7 +91,7 @@ func logger(prefix, server *string) {
 				}
 				logline := fmt.Sprintf("%v: level = %v, app = %v; device = %v; msg = %v\n",
 					in.Timestamp.AsTime(), in.Level, app, device, in.Msg)
-				log.Println(logline)
+				log.Printf(logline)
 				logfile.WriteString(logline)
 			}
 			stream.CloseSend()
