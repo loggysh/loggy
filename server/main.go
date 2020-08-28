@@ -11,6 +11,8 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/go-ego/riot"
+	"github.com/go-ego/riot/types"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
@@ -56,6 +58,7 @@ type Instance struct {
 
 type loggyServer struct {
 	db            *gorm.DB
+	searcher      *riot.Engine
 	notifications chan *pb.Instance
 	receivers     map[int32]chan *pb.LoggyMessage
 	listeners     map[string][]int32 // instanceid -> []receivers
@@ -245,6 +248,21 @@ func (l *loggyServer) Receive(receiverid *pb.ReceiverId, stream pb.LoggyService_
 	return nil
 }
 
+func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.Results, error) {
+	l.searcher.Flush()
+	result := l.searcher.SearchDoc(types.SearchReq{Text: query.Query})
+	var results []*pb.Result
+	for _, doc := range result.Docs {
+		results = append(results, &pb.Result{
+			Result:     doc.Content,
+			Instanceid: doc.DocId,
+		})
+	}
+	return &pb.Results{
+		Results: results,
+	}, nil
+}
+
 func main() {
 	prefix := flag.String("prefix", "logs", "Prefix for logs. (logs)")
 	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
@@ -261,10 +279,18 @@ func main() {
 	db.AutoMigrate(&Device{})
 	db.AutoMigrate(&Instance{})
 
+	var searcher = &riot.Engine{}
+	searcher.Init(types.EngineOpts{
+		Using:     4,
+		NotUseGse: true,
+	})
+	defer searcher.Close()
+
 	grpcServer := grpc.NewServer()
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
 		db:            db,
-		notifications: make(chan *pb.Instance, 100),
+		searcher:      searcher,
+		notifications: make(chan *pb.Instance),
 		receivers:     make(map[int32]chan *pb.LoggyMessage),
 		listeners:     make(map[string][]int32),
 	})
@@ -274,8 +300,10 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	log.Println("Listening on tcp://localhost:50111")
+	go indexer(searcher, server)
 	go logger(prefix, server)
+
+	log.Println("Listening on tcp://localhost:50111")
 	grpcServer.Serve(l)
 
 }
