@@ -50,9 +50,10 @@ func main() {
 		log.Fatalf("failed to add app: %s", err)
 	}
 
-	fmt.Printf("Instance ID: %s\n", instanceid)
+	sessionid := uuid.NewV4().String()
+	fmt.Printf("Instance ID: %s; Session ID: %s\n", instanceid, sessionid)
 
-	_, err = client.RegisterSend(context.Background(), &pb.InstanceId{Id: instanceid.Id})
+	_, err = client.RegisterSend(context.Background(), &pb.Session{Id: sessionid, Instanceid: instanceid.Id})
 	if err != nil {
 		log.Fatalf("failed to register: %s", err)
 	}

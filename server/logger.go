@@ -29,14 +29,14 @@ func logger(prefix, server *string) {
 	}
 
 	for {
-		instance, err := stream.Recv()
+		session, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			log.Printf("failed to receive instance: %s", err)
+			log.Printf("failed to receive session: %s", err)
 		}
-		log.Println(instance)
+		log.Println(session)
 
 		app, err := client.GetApplication(context.Background(), &pb.ApplicationId{Id: instance.Appid})
 		if err != nil {

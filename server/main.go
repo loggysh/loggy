@@ -56,7 +56,7 @@ type Instance struct {
 
 type loggyServer struct {
 	db            *gorm.DB
-	notifications chan *pb.Instance
+	notifications chan *pb.Session
 	receivers     map[int32]chan *pb.LoggyMessage
 	listeners     map[string][]int32 // instanceid -> []receivers
 }
@@ -129,10 +129,10 @@ func (l *loggyServer) InsertDevice(ctx context.Context, device *pb.Device) (*pb.
 func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) (*pb.DeviceList, error) {
 	var entries []*Device
 	var devices []*pb.Device
-	var instances []*Instance
-	l.db.Where("application_foreign_key = ?", appid.Id).Find(&instances)
-	for _, instance := range instances {
-		l.db.Where("id = ?", instance.DeviceID).Find(&entries)
+	var sessions []*Session
+	l.db.Where("application_foreign_key = ?", appid.Id).Find(&sessions)
+	for _, session := range session {
+		l.db.Where("id = ?", session.DeviceID).Find(&entries)
 	}
 	for _, device := range entries {
 		devices = append(devices, &pb.Device{
@@ -191,20 +191,20 @@ func (l *loggyServer) ListInstances(ctx context.Context, e *empty.Empty) (*pb.In
 
 func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer) error {
 	log.Println("Listening")
-	for instance := range l.notifications {
-		log.Println(instance)
-		stream.Send(instance)
+	for session := range l.notifications {
+		log.Println(session)
+		stream.Send(session)
 	}
 	return nil
 }
 
-func (l *loggyServer) RegisterSend(ctx context.Context, instanceid *pb.InstanceId) (*empty.Empty, error) {
+func (l *loggyServer) RegisterSend(ctx context.Context, session *pb.Session) (*empty.Empty, error) {
 	instance := &Instance{}
-	if l.db.Where("id = ?", instanceid.Id).First(&instance).RecordNotFound() {
+	if l.db.Where("id = ?", session.Instanceid).First(&instance).RecordNotFound() {
 		return nil, errors.New("instance not found")
 	}
-	l.notifications <- &pb.Instance{
-		Id:       instance.ID.String(),
+	l.notifications <- &pb.Session{
+		Id:       session.ID.String(),
 		Deviceid: instance.DeviceID.String(),
 		Appid:    instance.AppID.String(),
 	}
@@ -264,7 +264,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
 		db:            db,
-		notifications: make(chan *pb.Instance, 100),
+		notifications: make(chan *pb.Session),
 		receivers:     make(map[int32]chan *pb.LoggyMessage),
 		listeners:     make(map[string][]int32),
 	})

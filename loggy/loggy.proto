@@ -40,8 +40,6 @@ message DeviceList {
 
 message Instance {
     string id = 1;
-    string deviceid = 2;
-    string appid = 3;
 }
 
 message InstanceId {
@@ -54,6 +52,13 @@ message InstanceList {
 
 message ReceiverId {
     int32 id = 1;
+}
+
+message Session {
+  string id = 1;
+  string instanceid = 2;
+  string deviceid = 3;
+  string appid = 4;
 }
 
 message LoggyMessage {
@@ -85,8 +90,8 @@ service LoggyService {
     rpc ListInstances (google.protobuf.Empty) returns (InstanceList) {}
 
     rpc Send (stream LoggyMessage) returns (google.protobuf.Empty) {}
-    rpc Notify (google.protobuf.Empty) returns (stream Instance) {}
-    rpc RegisterSend (InstanceId) returns (google.protobuf.Empty) {}
+    rpc Notify (google.protobuf.Empty) returns (stream Session) {}
+    rpc RegisterSend (Session) returns (google.protobuf.Empty) {}
     rpc RegisterReceive (InstanceId) returns (ReceiverId) {}
     rpc Receive (ReceiverId) returns (stream LoggyMessage) {}
 }
