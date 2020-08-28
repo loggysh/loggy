@@ -90,7 +90,7 @@ func logger(prefix, server *string) {
 					log.Printf("failed to connect: %s", err)
 				}
 				logline := fmt.Sprintf("%v: level = %v, app = %v; device = %v; msg = %v\n",
-					in.Timestamp, in.Level, app, device, in.Msg)
+					in.Timestamp.AsTime(), in.Level, app, device, in.Msg)
 				log.Println(logline)
 				logfile.WriteString(logline)
 			}
