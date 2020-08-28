@@ -35,7 +35,7 @@ func (base *Base) BeforeCreate(scope *gorm.Scope) error {
 
 type Application struct {
 	Base
-	PackageName string
+	PackageName string `gorm:"unique"`
 	Name        string
 	Icon        string
 }
