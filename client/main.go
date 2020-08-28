@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/golang/protobuf/ptypes"
 	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
@@ -66,6 +67,7 @@ func main() {
 				Instanceid: instanceid.Id,
 				Sessionid:  uuid.NewV4().String(),
 				Msg:        time.Now().Format(time.RFC3339Nano),
+				Timestamp:  ptypes.TimestampNow(),
 			}
 			log.Printf("Instance: %s, Session: %s: %s\n", msg.Instanceid, msg.Sessionid, msg.Msg)
 			stream.Send(msg)

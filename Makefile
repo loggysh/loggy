@@ -4,7 +4,6 @@ all:
 	mv github.com/tuxcanfly/loggy/loggy/loggy.pb.go loggy/
 	go build -o client.exe ./client
 	go build -o server.exe ./server
-	go build -o logger.exe ./logger
 	rm -rf github.com
 
 clean:

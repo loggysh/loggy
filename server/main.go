@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
+	"flag"
 	"io"
 	"log"
 	"net"
@@ -192,7 +192,7 @@ func (l *loggyServer) ListInstances(ctx context.Context, e *empty.Empty) (*pb.In
 func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer) error {
 	log.Println("Listening")
 	for instance := range l.notifications {
-		fmt.Println(instance)
+		log.Println(instance)
 		stream.Send(instance)
 	}
 	return nil
@@ -228,7 +228,6 @@ func (l *loggyServer) Send(stream pb.LoggyService_SendServer) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Instance: %s, Session: %s: %s\n", in.Instanceid, in.Sessionid, in.Msg)
 		listeners := l.listeners[in.Instanceid]
 		for _, receiverid := range listeners {
 			if client, ok := l.receivers[receiverid]; ok {
@@ -247,6 +246,10 @@ func (l *loggyServer) Receive(receiverid *pb.ReceiverId, stream pb.LoggyService_
 }
 
 func main() {
+	prefix := flag.String("prefix", "logs", "Prefix for logs. (logs)")
+	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
+	flag.Parse()
+
 	db, err := gorm.Open("sqlite3", "test.db")
 	if err != nil {
 		panic("failed to connect database")
@@ -272,5 +275,7 @@ func main() {
 	}
 
 	log.Println("Listening on tcp://localhost:50111")
+	go logger(prefix, server)
 	grpcServer.Serve(l)
+
 }

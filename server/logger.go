@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -15,11 +14,7 @@ import (
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
 
-func main() {
-	prefix := flag.String("prefix", "logs", "Prefix for logs. (logs)")
-	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
-	flag.Parse()
-
+func logger(prefix, server *string) {
 	conn, err := grpc.Dial(fmt.Sprintf("%s:50111", *server), grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err)
@@ -41,28 +36,28 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to connect: %s", err)
 		}
-		fmt.Println(instance)
+		log.Println(instance)
 
 		app, err := client.GetApplication(context.Background(), &pb.ApplicationId{Id: instance.Appid})
 		if err != nil {
 			log.Fatalf("failed to app: %s", err)
 		}
 
-		fmt.Println(app)
+		log.Println(app)
 
 		device, err := client.GetDevice(context.Background(), &pb.DeviceId{Id: instance.Deviceid})
 		if err != nil {
 			log.Fatalf("failed to device: %s", err)
 		}
 
-		fmt.Println(device)
+		log.Println(device)
 
 		receiverid, err := client.RegisterReceive(context.Background(), &pb.InstanceId{Id: instance.Id})
 		if err != nil {
 			log.Fatalf("failed to register: %s", err)
 		}
 
-		fmt.Println(receiverid)
+		log.Println(receiverid)
 
 		logfilepath := path.Join(*prefix, app.Id, device.Id, instance.Id)
 		err = os.MkdirAll(logfilepath, 0777)
@@ -70,7 +65,7 @@ func main() {
 			log.Fatalf("failed to mkdir: %s", err)
 		}
 
-		fmt.Println(logfilepath)
+		log.Println(logfilepath)
 
 		go func(instance *pb.Instance, app *pb.Application, device *pb.Device, receiverid *pb.ReceiverId, logfilepath string) {
 			stream, err := client.Receive(context.Background(), receiverid)
@@ -96,7 +91,7 @@ func main() {
 				}
 				logline := fmt.Sprintf("%v: level = %v, app = %v; device = %v; msg = %v\n",
 					in.Timestamp, in.Level, app, device, in.Msg)
-				fmt.Println(logline)
+				log.Println(logline)
 				logfile.WriteString(logline)
 			}
 			stream.CloseSend()
