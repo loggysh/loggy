@@ -248,7 +248,7 @@ func (l *loggyServer) Receive(receiverid *pb.ReceiverId, stream pb.LoggyService_
 }
 
 func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.Results, error) {
-	result, err := l.indexer.Search(bleve.NewSearchRequest(bleve.NewQueryStringQuery(query.Query)))
+	result, err := l.indexer.Search(bleve.NewSearchRequest(bleve.NewFuzzyQuery(query.Query)))
 	if err != nil {
 		log.Println(err)
 	}
