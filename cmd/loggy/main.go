@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/blevesearch/bleve"
 	empty "github.com/golang/protobuf/ptypes/empty"
@@ -53,6 +54,25 @@ type Instance struct {
 	Base
 	AppID    uuid.UUID `gorm:"primary_key;type:uuid;column:application_foreign_key;not null;"`
 	DeviceID uuid.UUID `gorm:"primary_key;type:uuid;column:device_foreign_key;not null;"`
+}
+
+type LogLevel int
+
+const (
+	DEBUG LogLevel = iota
+	INFO
+	WARN
+	ERROR
+	CRASH
+)
+
+type Message struct {
+	Base
+	InstanceID uuid.UUID `gorm:"primary_key;type:uuid;column:instance_foreign_key;not null;"`
+	SessionID  string
+	Msg        string
+	Timestamp  time.Time
+	Level      LogLevel
 }
 
 type loggyServer struct {
@@ -254,8 +274,19 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.Results,
 	}
 	var results []*pb.Result
 	for _, hit := range result.Hits {
+		msg := &Message{}
+		if l.db.Where("id = ?", hit.ID).First(&msg).RecordNotFound() {
+			return nil, errors.New("msg not found")
+		}
 		results = append(results, &pb.Result{
-			Instanceid: hit.ID,
+			Id: hit.ID,
+			Msg: &pb.LoggyMessage{
+				Instanceid: msg.InstanceID.String(),
+				Sessionid:  msg.SessionID,
+				Msg:        msg.Msg,
+				Timestamp:  timestamppb.New(msg.Timestamp),
+				Level:      pb.LoggyMessage_Level(msg.Level),
+			},
 		})
 	}
 	return &pb.Results{Results: results}, nil
@@ -276,6 +307,7 @@ func main() {
 	db.AutoMigrate(&Application{})
 	db.AutoMigrate(&Device{})
 	db.AutoMigrate(&Instance{})
+	db.AutoMigrate(&Message{})
 
 	mapping := bleve.NewIndexMapping()
 	indexer, err := bleve.NewMemOnly(mapping)
@@ -297,7 +329,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	go logger(prefix, server, indexer)
+	go logger(prefix, server, indexer, db)
 
 	log.Println("Listening on tcp://localhost:50111")
 	grpcServer.Serve(l)

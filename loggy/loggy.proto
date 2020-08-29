@@ -76,8 +76,8 @@ message Query {
 }
 
 message Result {
-  string result = 1;
-  string instanceid = 2;
+  string id = 1;
+  LoggyMessage msg = 2;
 }
 
 message Results {

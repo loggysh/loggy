@@ -12,10 +12,12 @@ import (
 
 	"github.com/blevesearch/bleve"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
 
-func logger(prefix, server *string, indexer bleve.Index) {
+func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {
 	conn, err := grpc.Dial(fmt.Sprintf("%s:50111", *server), grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err)
@@ -69,7 +71,7 @@ func logger(prefix, server *string, indexer bleve.Index) {
 		log.Println(logfilepath)
 
 		go func(instance *pb.Instance, app *pb.Application, device *pb.Device, receiverid *pb.ReceiverId,
-			logfilepath string, indexer bleve.Index) {
+			logfilepath string, indexer bleve.Index, db *gorm.DB) {
 			stream, err := client.Receive(context.Background(), receiverid)
 			if err != nil {
 				log.Printf("failed to receive: %s", err)
@@ -83,7 +85,6 @@ func logger(prefix, server *string, indexer bleve.Index) {
 			}
 			defer logfile.Close()
 
-			var linenumber int
 			for {
 				in, err := stream.Recv()
 				if err == io.EOF {
@@ -92,15 +93,25 @@ func logger(prefix, server *string, indexer bleve.Index) {
 				if err != nil {
 					log.Printf("failed to connect: %s", err)
 				}
-				linenumber++
-				logline := fmt.Sprintf("%v: level = %v, app = %v; device = %v; msg = %v\n",
-					in.Timestamp.AsTime(), in.Level, app, device, in.Msg)
-				log.Printf(logline)
-				indexer.Index(fmt.Sprintf("%s: %d", instance.Id, linenumber), logline)
-				logfile.WriteString(logline)
+				instanceid, err := uuid.FromString(in.Instanceid)
+				if err != nil {
+					log.Printf("failed to parse instance id: %s", err)
+				}
+				msg := Message{
+					InstanceID: instanceid,
+					SessionID:  in.Sessionid,
+					Msg:        in.Msg,
+					Timestamp:  in.Timestamp.AsTime(),
+					Level:      LogLevel(in.Level),
+				}
+				if db.Create(&msg).Error != nil {
+					log.Println("unable to create message")
+					continue
+				}
+				indexer.Index(msg.ID.String(), in)
 			}
 			stream.CloseSend()
-		}(instance, app, device, receiverid, logfilepath, indexer)
+		}(instance, app, device, receiverid, logfilepath, indexer, db)
 		stream.CloseSend()
 	}
 }
