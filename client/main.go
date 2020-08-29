@@ -27,12 +27,12 @@ func init() {
 func readAvailableDictionary() []string {
 	file, err := os.Open("/usr/share/dict/words")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	bytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	return strings.Split(string(bytes), "\n")
