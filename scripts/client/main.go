@@ -56,9 +56,9 @@ func main() {
 
 	client := pb.NewLoggyServiceClient(conn)
 	appid, err := client.GetOrInsertApplication(context.Background(), &pb.Application{
-		Id:   "com.swiggy.android",
-		Name: "Swiggy",
-		Icon: "swiggy.svg",
+		Id:   "com.loggy.android",
+		Name: "Loggy",
+		Icon: "loggy.svg",
 	})
 	if err != nil {
 		log.Fatalf("failed to add app: %s", err)
