@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/golang/protobuf/ptypes"
-	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
 
@@ -67,7 +66,7 @@ func main() {
 	fmt.Printf("Application ID: %s\n", appid)
 
 	deviceid, err := client.GetOrInsertDevice(context.Background(), &pb.Device{
-		Id:      uuid.NewV4().String(),
+		Id:      "5b11da9b-35a9-4c87-99b1-def6ca91ace7",
 		Details: "{'name': 'Xiaomi Note 5'}",
 	})
 	if err != nil {

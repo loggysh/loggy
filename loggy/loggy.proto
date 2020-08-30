@@ -47,6 +47,11 @@ message SessionId {
     int32 id = 1;
 }
 
+message SessionQuery {
+  string deviceid = 1;
+  string appid = 3;
+}
+
 message SessionList {
   repeated Session sessions =  1;
 }
@@ -85,7 +90,7 @@ service LoggyService {
     rpc ListDevices (ApplicationId) returns (DeviceList) {}
 
     rpc GetOrInsertSession (Session) returns (SessionId) {}
-    rpc ListSessions (google.protobuf.Empty) returns (SessionList) {}
+    rpc ListSessions (SessionQuery) returns (SessionList) {}
 
     rpc ListSessionMessages(SessionId) returns (MessageList) {}
 

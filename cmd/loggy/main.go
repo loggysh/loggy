@@ -42,12 +42,6 @@ type Device struct {
 	Details string
 }
 
-// BeforeCreate will set a UUID rather than numeric ID.
-func (d *Device) BeforeCreate(scope *gorm.Scope) error {
-	uuid := uuid.NewV4()
-	return scope.SetColumn("ID", uuid)
-}
-
 type Session struct {
 	Base
 	ID       int32
@@ -160,10 +154,10 @@ func (l *loggyServer) GetOrInsertSession(ctx context.Context, session *pb.Sessio
 	}, nil
 }
 
-func (l *loggyServer) ListSessions(ctx context.Context, e *empty.Empty) (*pb.SessionList, error) {
+func (l *loggyServer) ListSessions(ctx context.Context, query *pb.SessionQuery) (*pb.SessionList, error) {
 	var entries []*Session
 	var sessions []*pb.Session
-	l.db.Find(&entries)
+	l.db.Where("application_foreign_key = ?", query.Appid).Where("device_foreign_key = ?", query.Deviceid).Find(&entries)
 	for _, session := range entries {
 		sessions = append(sessions, &pb.Session{
 			Id:       session.ID,
