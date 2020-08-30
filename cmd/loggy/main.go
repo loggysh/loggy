@@ -310,7 +310,7 @@ func main() {
 	db.AutoMigrate(&Message{})
 
 	mapping := bleve.NewIndexMapping()
-	indexer, err := bleve.NewMemOnly(mapping)
+	indexer, err := bleve.New("sh.loggy.android", mapping)
 	if err != nil {
 		log.Fatalf("failed to create index: %v", err)
 	}
