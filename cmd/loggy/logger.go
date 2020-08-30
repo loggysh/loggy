@@ -51,7 +51,7 @@ func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {
 				log.Printf("failed to receive: %s", err)
 			}
 
-			log.Printf("Started logger for session: %s\n", session.Id)
+			log.Printf("Started logger for session: %d\n", session.Id)
 
 			for {
 				in, err := stream.Recv()

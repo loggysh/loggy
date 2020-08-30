@@ -56,9 +56,9 @@ func main() {
 
 	client := pb.NewLoggyServiceClient(conn)
 	appid, err := client.GetOrInsertApplication(context.Background(), &pb.Application{
-		PackageName: "com.swiggy.android",
-		Name:        "Swiggy",
-		Icon:        "swiggy.svg",
+		Id:   "com.swiggy.android",
+		Name: "Swiggy",
+		Icon: "swiggy.svg",
 	})
 	if err != nil {
 		log.Fatalf("failed to add app: %s", err)
@@ -86,7 +86,7 @@ func main() {
 
 	fmt.Printf("Session ID: %s\n", sessionid)
 
-	_, err = client.RegisterSend(context.Background(), &pb.SessionId{Id: session.Id})
+	_, err = client.RegisterSend(context.Background(), &pb.SessionId{Id: sessionid.Id})
 	if err != nil {
 		log.Fatalf("failed to register: %s", err)
 	}
@@ -98,11 +98,11 @@ func main() {
 		for {
 			time.Sleep(time.Second)
 			msg := &pb.LoggyMessage{
-				Sessionid: session.Id,
+				Sessionid: sessionid.Id,
 				Msg:       babble(),
 				Timestamp: ptypes.TimestampNow(),
 			}
-			log.Printf("Sesssion - %s: %s: %s\n", msg.Sessionid, msg.Msg)
+			log.Printf("Sesssion - %d: %s\n", msg.Sessionid, msg.Msg)
 			stream.Send(msg)
 		}
 	}()
