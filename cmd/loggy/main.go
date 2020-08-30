@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"google.golang.org/grpc"
@@ -21,6 +22,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
+
+var IndexPath = "loggy.index"
 
 // Base contains common columns for all tables.
 type Base struct {
@@ -275,8 +278,12 @@ func main() {
 	db.AutoMigrate(&Session{})
 	db.AutoMigrate(&Message{})
 
-	mapping := bleve.NewIndexMapping()
-	indexer, err := bleve.New("sh.loggy.android", mapping)
+	var indexer bleve.Index
+	if _, err := os.Stat(IndexPath); os.IsNotExist(err) {
+		indexer, err = bleve.New(IndexPath, bleve.NewIndexMapping())
+	} else {
+		indexer, err = bleve.Open(IndexPath)
+	}
 	if err != nil {
 		log.Fatalf("failed to create index: %v", err)
 	}
