@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/golang/protobuf/ptypes"
-	uuid "github.com/satori/go.uuid"
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
 
@@ -55,10 +54,10 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewLoggyServiceClient(conn)
-	appid, err := client.InsertApplication(context.Background(), &pb.Application{
-		PackageName: "com.swiggy.android",
-		Name:        "Swiggy",
-		Icon:        "swiggy.svg",
+	appid, err := client.GetOrInsertApplication(context.Background(), &pb.Application{
+		Id:   "com.loggy.android",
+		Name: "Loggy",
+		Icon: "loggy.svg",
 	})
 	if err != nil {
 		log.Fatalf("failed to add app: %s", err)
@@ -66,8 +65,8 @@ func main() {
 
 	fmt.Printf("Application ID: %s\n", appid)
 
-	deviceid, err := client.InsertDevice(context.Background(), &pb.Device{
-		Id:      uuid.NewV4().String(),
+	deviceid, err := client.GetOrInsertDevice(context.Background(), &pb.Device{
+		Id:      "5b11da9b-35a9-4c87-99b1-def6ca91ace7",
 		Details: "{'name': 'Xiaomi Note 5'}",
 	})
 	if err != nil {
@@ -76,17 +75,17 @@ func main() {
 
 	fmt.Printf("Device ID: %s\n", deviceid)
 
-	instanceid, err := client.GetOrInsertInstance(context.Background(), &pb.Instance{
+	sessionid, err := client.InsertSession(context.Background(), &pb.Session{
 		Deviceid: deviceid.Id,
 		Appid:    appid.Id,
 	})
 	if err != nil {
-		log.Fatalf("failed to add app: %s", err)
+		log.Fatalf("failed to add session: %s", err)
 	}
 
-	fmt.Printf("Instance ID: %s\n", instanceid)
+	fmt.Printf("Session ID: %s\n", sessionid)
 
-	_, err = client.RegisterSend(context.Background(), &pb.InstanceId{Id: instanceid.Id})
+	_, err = client.RegisterSend(context.Background(), &pb.SessionId{Id: sessionid.Id})
 	if err != nil {
 		log.Fatalf("failed to register: %s", err)
 	}
@@ -97,13 +96,12 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			msg := &pb.LoggyMessage{
-				Instanceid: instanceid.Id,
-				Sessionid:  uuid.NewV4().String(),
-				Msg:        babble(),
-				Timestamp:  ptypes.TimestampNow(),
+			msg := &pb.Message{
+				Sessionid: sessionid.Id,
+				Msg:       babble(),
+				Timestamp: ptypes.TimestampNow(),
 			}
-			log.Printf("Instance: %s, Session: %s: %s\n", msg.Instanceid, msg.Sessionid, msg.Msg)
+			log.Printf("Sesssion - %d: %s\n", msg.Sessionid, msg.Msg)
 			stream.Send(msg)
 		}
 	}()
