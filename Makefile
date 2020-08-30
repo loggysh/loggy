@@ -6,4 +6,4 @@ all:
 	rm -rf github.com
 
 clean:
-	rm -rf github.com loggy/loggy.pb.go loggy/loggy_grpc.pb.go *.exe test.db logs
+	rm -rf github.com loggy/loggy.pb.go loggy/loggy_grpc.pb.go *.exe test.db logs sh.loggy.android/

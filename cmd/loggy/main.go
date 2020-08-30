@@ -15,6 +15,7 @@ import (
 	"github.com/blevesearch/bleve"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	uuid "github.com/satori/go.uuid"
+	"github.com/tuxcanfly/loggy/loggy"
 	pb "github.com/tuxcanfly/loggy/loggy"
 
 	"github.com/jinzhu/gorm"
@@ -174,7 +175,18 @@ func (l *loggyServer) ListSessions(ctx context.Context, e *empty.Empty) (*pb.Ses
 }
 
 func (l *loggyServer) ListSessionMessages(ctx context.Context, sessionid *pb.SessionId) (*pb.MessageList, error) {
-	return &pb.MessageList{}, nil
+	var entries []*Message
+	var messages []*pb.Message
+	l.db.Where("session_id = ?", sessionid.Id).Find(&entries)
+	for _, message := range entries {
+		messages = append(messages, &pb.Message{
+			Sessionid: message.SessionID,
+			Msg:       message.Msg,
+			Timestamp: timestamppb.New(message.Timestamp),
+			Level:     loggy.Message_Level(message.Level),
+		})
+	}
+	return &pb.MessageList{Messages: messages}, nil
 }
 
 func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer) error {
