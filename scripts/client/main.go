@@ -54,7 +54,7 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewLoggyServiceClient(conn)
-	appid, err := client.GetOrInsertApplication(context.Background(), &pb.Application{
+	app, err := client.GetOrInsertApplication(context.Background(), &pb.Application{
 		Id:   "com.loggy.android",
 		Name: "Loggy",
 		Icon: "loggy.svg",
@@ -63,9 +63,9 @@ func main() {
 		log.Fatalf("failed to add app: %s", err)
 	}
 
-	fmt.Printf("Application ID: %s\n", appid)
+	fmt.Printf("Application ID: %s\n", app.Id)
 
-	deviceid, err := client.GetOrInsertDevice(context.Background(), &pb.Device{
+	device, err := client.GetOrInsertDevice(context.Background(), &pb.Device{
 		Id:      "5b11da9b-35a9-4c87-99b1-def6ca91ace7",
 		Details: "{'name': 'Xiaomi Note 5'}",
 	})
@@ -73,11 +73,11 @@ func main() {
 		log.Fatalf("failed to add device: %s", err)
 	}
 
-	fmt.Printf("Device ID: %s\n", deviceid)
+	fmt.Printf("Device ID: %s\n", device.Id)
 
 	sessionid, err := client.InsertSession(context.Background(), &pb.Session{
-		Deviceid: deviceid.Id,
-		Appid:    appid.Id,
+		Deviceid: device.Id,
+		Appid:    app.Id,
 	})
 	if err != nil {
 		log.Fatalf("failed to add session: %s", err)

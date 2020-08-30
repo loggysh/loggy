@@ -83,10 +83,10 @@ message Query {
 }
 
 service LoggyService {
-    rpc GetOrInsertApplication (Application) returns (ApplicationId) {}
+    rpc GetOrInsertApplication (Application) returns (Application) {}
     rpc ListApplications (google.protobuf.Empty) returns (ApplicationList) {}
 
-    rpc GetOrInsertDevice (Device) returns (DeviceId) {}
+    rpc GetOrInsertDevice (Device) returns (Device) {}
     rpc ListDevices (ApplicationId) returns (DeviceList) {}
 
     rpc InsertSession (Session) returns (SessionId) {}

@@ -80,7 +80,7 @@ type loggyServer struct {
 	listeners     map[int32][]int32 // sessionid -> []receivers
 }
 
-func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.ApplicationId, error) {
+func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.Application, error) {
 	entry := &Application{
 		ID:   app.Id,
 		Name: app.Name,
@@ -88,8 +88,10 @@ func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Applic
 	}
 	exists := &Application{}
 	l.db.Where(entry).FirstOrCreate(&exists)
-	return &pb.ApplicationId{
-		Id: exists.ID,
+	return &pb.Application{
+		Id:   exists.ID,
+		Name: exists.Name,
+		Icon: exists.Icon,
 	}, nil
 }
 
@@ -107,7 +109,7 @@ func (l *loggyServer) ListApplications(ctx context.Context, e *empty.Empty) (*pb
 	return &pb.ApplicationList{Apps: apps}, nil
 }
 
-func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) (*pb.DeviceId, error) {
+func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) (*pb.Device, error) {
 	deviceid, err := uuid.FromString(device.Id)
 	if err != nil {
 		return nil, err
@@ -118,8 +120,9 @@ func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) 
 	}
 	exists := &Device{}
 	l.db.Where(entry).FirstOrCreate(&exists)
-	return &pb.DeviceId{
-		Id: exists.ID.String(),
+	return &pb.Device{
+		Id:      exists.ID.String(),
+		Details: exists.Details,
 	}, nil
 }
 
