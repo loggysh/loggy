@@ -71,6 +71,7 @@ func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {
 					log.Println("unable to create message")
 					continue
 				}
+				log.Println(msg.String())
 				indexer.Index(fmt.Sprintf("%d", msg.ID), in)
 			}
 			stream.CloseSend()

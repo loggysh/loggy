@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -70,6 +71,25 @@ type Message struct {
 	Msg       string
 	Timestamp time.Time
 	Level     LogLevel
+}
+
+func (m *Message) String() string {
+	var level string
+	switch m.Level {
+	case DEBUG:
+		level = "DEBUG"
+	case INFO:
+		level = "INFO"
+	case WARN:
+		level = "WARN"
+	case ERROR:
+		level = "ERROR"
+	case CRASH:
+		level = "CRASH"
+	default:
+		level = "undefined"
+	}
+	return fmt.Sprintf("%v :: %d :: <%s> :: %s", m.Timestamp, m.SessionID, level, m.Msg)
 }
 
 type loggyServer struct {
