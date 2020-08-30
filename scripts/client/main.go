@@ -75,7 +75,7 @@ func main() {
 
 	fmt.Printf("Device ID: %s\n", deviceid)
 
-	sessionid, err := client.GetOrInsertSession(context.Background(), &pb.Session{
+	sessionid, err := client.InsertSession(context.Background(), &pb.Session{
 		Deviceid: deviceid.Id,
 		Appid:    appid.Id,
 	})

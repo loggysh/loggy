@@ -137,18 +137,16 @@ func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) 
 	return &pb.DeviceList{Devices: devices}, nil
 }
 
-func (l *loggyServer) GetOrInsertSession(ctx context.Context, session *pb.Session) (*pb.SessionId, error) {
+func (l *loggyServer) InsertSession(ctx context.Context, session *pb.Session) (*pb.SessionId, error) {
 	deviceid, err := uuid.FromString(session.Deviceid)
 	if err != nil {
 		return nil, err
 	}
-	entry := &Session{
-		ID:       session.Id,
+	exists := &Session{
 		AppID:    session.Appid,
 		DeviceID: deviceid,
 	}
-	exists := &Session{}
-	l.db.Where(entry).FirstOrCreate(&exists)
+	l.db.Create(&exists)
 	return &pb.SessionId{
 		Id: exists.ID,
 	}, nil
