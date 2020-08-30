@@ -12,9 +12,8 @@ package loggy;
 
 message Application {
     string id = 1;
-    string package_name = 2;
-    string name = 3;
-    string icon = 4;
+    string name = 2;
+    string icon = 3;
 }
 
 message ApplicationId {
