@@ -55,7 +55,7 @@ message ReceiverId {
     int32 id = 1;
 }
 
-message LoggyMessage {
+message Message {
   int32 sessionid = 1;
   string msg = 2;
   google.protobuf.Timestamp timestamp = 3;
@@ -69,17 +69,12 @@ message LoggyMessage {
   Level level = 4;
 }
 
+message MessageList {
+  repeated Message messages = 1;
+}
+
 message Query {
   string query = 1;
-}
-
-message Result {
-  string id = 1;
-  LoggyMessage msg = 2;
-}
-
-message Results {
-  repeated Result results = 1;
 }
 
 service LoggyService {
@@ -92,10 +87,12 @@ service LoggyService {
     rpc GetOrInsertSession (Session) returns (SessionId) {}
     rpc ListSessions (google.protobuf.Empty) returns (SessionList) {}
 
-    rpc Send (stream LoggyMessage) returns (google.protobuf.Empty) {}
+    rpc ListSessionMessages(SessionId) returns (MessageList) {}
+
+    rpc Send (stream Message) returns (google.protobuf.Empty) {}
     rpc Notify (google.protobuf.Empty) returns (stream Session) {}
     rpc RegisterSend (SessionId) returns (google.protobuf.Empty) {}
     rpc RegisterReceive (SessionId) returns (ReceiverId) {}
-    rpc Receive (ReceiverId) returns (stream LoggyMessage) {}
-    rpc Search (Query) returns (Results) {}
+    rpc Receive (ReceiverId) returns (stream Message) {}
+    rpc Search (Query) returns (MessageList) {}
 }

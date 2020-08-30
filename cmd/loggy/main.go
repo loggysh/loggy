@@ -78,7 +78,7 @@ type loggyServer struct {
 	db            *gorm.DB
 	indexer       bleve.Index
 	notifications chan *pb.Session
-	receivers     map[int32]chan *pb.LoggyMessage
+	receivers     map[int32]chan *pb.Message
 	listeners     map[int32][]int32 // sessionid -> []receivers
 }
 
@@ -173,6 +173,10 @@ func (l *loggyServer) ListSessions(ctx context.Context, e *empty.Empty) (*pb.Ses
 	return &pb.SessionList{Sessions: sessions}, nil
 }
 
+func (l *loggyServer) ListSessionMessages(ctx context.Context, sessionid *pb.SessionId) (*pb.MessageList, error) {
+	return &pb.MessageList{}, nil
+}
+
 func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer) error {
 	log.Println("Listening")
 	for session := range l.notifications {
@@ -197,7 +201,7 @@ func (l *loggyServer) RegisterSend(ctx context.Context, sessionid *pb.SessionId)
 
 func (l *loggyServer) RegisterReceive(ctx context.Context, sessionid *pb.SessionId) (*pb.ReceiverId, error) {
 	id := int32(len(l.receivers) + 1)
-	l.receivers[id] = make(chan *pb.LoggyMessage, 100)
+	l.receivers[id] = make(chan *pb.Message, 100)
 	l.listeners[sessionid.Id] = append(l.listeners[sessionid.Id], id)
 	return &pb.ReceiverId{Id: id}, nil
 }
@@ -229,28 +233,25 @@ func (l *loggyServer) Receive(receiverid *pb.ReceiverId, stream pb.LoggyService_
 	return nil
 }
 
-func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.Results, error) {
+func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageList, error) {
 	result, err := l.indexer.Search(bleve.NewSearchRequest(bleve.NewFuzzyQuery(query.Query)))
 	if err != nil {
 		log.Println(err)
 	}
-	var results []*pb.Result
+	var messages []*pb.Message
 	for _, hit := range result.Hits {
 		msg := &Message{}
 		if l.db.Where("id = ?", hit.ID).First(&msg).RecordNotFound() {
 			return nil, errors.New("msg not found")
 		}
-		results = append(results, &pb.Result{
-			Id: hit.ID,
-			Msg: &pb.LoggyMessage{
-				Sessionid: msg.SessionID,
-				Msg:       msg.Msg,
-				Timestamp: timestamppb.New(msg.Timestamp),
-				Level:     pb.LoggyMessage_Level(msg.Level),
-			},
+		messages = append(messages, &pb.Message{
+			Sessionid: msg.SessionID,
+			Msg:       msg.Msg,
+			Timestamp: timestamppb.New(msg.Timestamp),
+			Level:     pb.Message_Level(msg.Level),
 		})
 	}
-	return &pb.Results{Results: results}, nil
+	return &pb.MessageList{Messages: messages}, nil
 }
 
 func main() {
@@ -281,7 +282,7 @@ func main() {
 		db:            db,
 		indexer:       indexer,
 		notifications: make(chan *pb.Session),
-		receivers:     make(map[int32]chan *pb.LoggyMessage),
+		receivers:     make(map[int32]chan *pb.Message),
 		listeners:     make(map[int32][]int32),
 	})
 

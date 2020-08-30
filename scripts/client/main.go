@@ -97,7 +97,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			msg := &pb.LoggyMessage{
+			msg := &pb.Message{
 				Sessionid: sessionid.Id,
 				Msg:       babble(),
 				Timestamp: ptypes.TimestampNow(),
