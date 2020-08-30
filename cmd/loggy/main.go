@@ -23,37 +23,35 @@ import (
 
 // Base contains common columns for all tables.
 type Base struct {
-	ID        uuid.UUID `gorm:"type:uuid;primary_key;"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time `sql:"index"`
-}
-
-// BeforeCreate will set a UUID rather than numeric ID.
-func (base *Base) BeforeCreate(scope *gorm.Scope) error {
-	uuid := uuid.NewV4()
-	return scope.SetColumn("ID", uuid)
 }
 
 type Application struct {
 	Base
-	PackageName string `gorm:"unique"`
-	Name        string
-	Icon        string
+	ID   string
+	Name string
+	Icon string
 }
 
 type Device struct {
-	ID        uuid.UUID `gorm:"type:uuid;primary_key;"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time `sql:"index"`
-	Details   string
+	Base
+	ID      uuid.UUID `gorm:"type:uuid;primary_key;"`
+	Details string
 }
 
-type Instance struct {
+// BeforeCreate will set a UUID rather than numeric ID.
+func (d *Device) BeforeCreate(scope *gorm.Scope) error {
+	uuid := uuid.NewV4()
+	return scope.SetColumn("ID", uuid)
+}
+
+type Session struct {
 	Base
-	AppID    uuid.UUID `gorm:"primary_key;type:uuid;column:application_foreign_key;not null;"`
-	DeviceID uuid.UUID `gorm:"primary_key;type:uuid;column:device_foreign_key;not null;"`
+	ID       int32
+	AppID    string    `gorm:"type:string;column:application_foreign_key;not null;"`
+	DeviceID uuid.UUID `gorm:"type:uuid;column:device_foreign_key;not null;"`
 }
 
 type LogLevel int
@@ -67,45 +65,34 @@ const (
 )
 
 type Message struct {
+	ID int
 	Base
-	InstanceID uuid.UUID `gorm:"primary_key;type:uuid;column:instance_foreign_key;not null;"`
-	SessionID  string
-	Msg        string
-	Timestamp  time.Time
-	Level      LogLevel
+	SessionID int32
+	Session   Session
+	Msg       string
+	Timestamp time.Time
+	Level     LogLevel
 }
 
 type loggyServer struct {
 	db            *gorm.DB
 	indexer       bleve.Index
-	notifications chan *pb.Instance
+	notifications chan *pb.Session
 	receivers     map[int32]chan *pb.LoggyMessage
-	listeners     map[string][]int32 // instanceid -> []receivers
+	listeners     map[int32][]int32 // sessionid -> []receivers
 }
 
-func (l *loggyServer) GetApplication(ctx context.Context, appid *pb.ApplicationId) (*pb.Application, error) {
-	app := &Application{}
-	if l.db.Where("id = ?", appid.Id).First(&app).RecordNotFound() {
-		return nil, errors.New("app not found")
+func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.ApplicationId, error) {
+	entry := &Application{
+		ID:   app.Id,
+		Name: app.Name,
+		Icon: app.Icon,
 	}
-	return &pb.Application{
-		Id:          app.ID.String(),
-		PackageName: app.PackageName,
-		Name:        app.Name,
-		Icon:        app.Icon,
+	exists := &Application{}
+	l.db.Where(entry).FirstOrCreate(&exists)
+	return &pb.ApplicationId{
+		Id: exists.ID,
 	}, nil
-}
-
-func (l *loggyServer) InsertApplication(ctx context.Context, app *pb.Application) (*pb.ApplicationId, error) {
-	entry := Application{
-		PackageName: app.PackageName,
-		Name:        app.Name,
-		Icon:        app.Icon,
-	}
-	if l.db.Create(&entry).Error != nil {
-		return nil, errors.New("unable to create app")
-	}
-	return &pb.ApplicationId{Id: entry.ID.String()}, nil
 }
 
 func (l *loggyServer) ListApplications(ctx context.Context, e *empty.Empty) (*pb.ApplicationList, error) {
@@ -114,47 +101,37 @@ func (l *loggyServer) ListApplications(ctx context.Context, e *empty.Empty) (*pb
 	l.db.Find(&entries)
 	for _, app := range entries {
 		apps = append(apps, &pb.Application{
-			Id:          app.ID.String(),
-			PackageName: app.PackageName,
-			Name:        app.Name,
-			Icon:        app.Icon,
+			Id:   app.ID,
+			Name: app.Name,
+			Icon: app.Icon,
 		})
 	}
 	return &pb.ApplicationList{Apps: apps}, nil
 }
 
-func (l *loggyServer) GetDevice(ctx context.Context, devid *pb.DeviceId) (*pb.Device, error) {
-	device := &Device{}
-	if l.db.Where("id = ?", devid.Id).First(&device).RecordNotFound() {
-		return nil, errors.New("device not found")
-	}
-	return &pb.Device{
-		Details: device.Details,
-	}, nil
-}
-
-func (l *loggyServer) InsertDevice(ctx context.Context, device *pb.Device) (*pb.DeviceId, error) {
+func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) (*pb.DeviceId, error) {
 	deviceid, err := uuid.FromString(device.Id)
 	if err != nil {
 		return nil, err
 	}
-	entry := Device{
+	entry := &Device{
 		ID:      deviceid,
 		Details: device.Details,
 	}
-	if l.db.Create(&entry).Error != nil {
-		return nil, errors.New("unable to create device")
-	}
-	return &pb.DeviceId{Id: entry.ID.String()}, nil
+	exists := &Device{}
+	l.db.Where(entry).FirstOrCreate(&exists)
+	return &pb.DeviceId{
+		Id: exists.ID.String(),
+	}, nil
 }
 
 func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) (*pb.DeviceList, error) {
 	var entries []*Device
 	var devices []*pb.Device
-	var instances []*Instance
-	l.db.Where("application_foreign_key = ?", appid.Id).Find(&instances)
-	for _, instance := range instances {
-		l.db.Where("id = ?", instance.DeviceID).Find(&entries)
+	var sessions []*Session
+	l.db.Where("application_foreign_key = ?", appid.Id).Find(&sessions)
+	for _, session := range sessions {
+		l.db.Where("id = ?", session.DeviceID).Find(&entries)
 	}
 	for _, device := range entries {
 		devices = append(devices, &pb.Device{
@@ -165,78 +142,63 @@ func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) 
 	return &pb.DeviceList{Devices: devices}, nil
 }
 
-func (l *loggyServer) GetOrInsertInstance(ctx context.Context, instance *pb.Instance) (*pb.InstanceId, error) {
-	deviceid, err := uuid.FromString(instance.Deviceid)
+func (l *loggyServer) GetOrInsertSession(ctx context.Context, session *pb.Session) (*pb.SessionId, error) {
+	deviceid, err := uuid.FromString(session.Deviceid)
 	if err != nil {
 		return nil, err
 	}
-	appid, err := uuid.FromString(instance.Appid)
-	if err != nil {
-		return nil, err
-	}
-	entry := &Instance{
-		AppID:    appid,
+	entry := &Session{
+		ID:       session.Id,
+		AppID:    session.Appid,
 		DeviceID: deviceid,
 	}
-	exists := &Instance{}
+	exists := &Session{}
 	l.db.Where(entry).FirstOrCreate(&exists)
-	return &pb.InstanceId{
-		Id: exists.ID.String(),
+	return &pb.SessionId{
+		Id: exists.ID,
 	}, nil
 }
 
-func (l *loggyServer) GetInstance(ctx context.Context, instanceid *pb.InstanceId) (*pb.Instance, error) {
-	instance := &Instance{}
-	if l.db.Where("id = ?", instanceid.Id).First(&instance).RecordNotFound() {
-		return nil, errors.New("instance not found")
-	}
-	return &pb.Instance{
-		Id:       instance.ID.String(),
-		Deviceid: instance.DeviceID.String(),
-		Appid:    instance.AppID.String(),
-	}, nil
-}
-
-func (l *loggyServer) ListInstances(ctx context.Context, e *empty.Empty) (*pb.InstanceList, error) {
-	var entries []*Instance
-	var instances []*pb.Instance
+func (l *loggyServer) ListSessions(ctx context.Context, e *empty.Empty) (*pb.SessionList, error) {
+	var entries []*Session
+	var sessions []*pb.Session
 	l.db.Find(&entries)
-	for _, instance := range entries {
-		instances = append(instances, &pb.Instance{
-			Id:       instance.ID.String(),
-			Deviceid: instance.DeviceID.String(),
-			Appid:    instance.AppID.String(),
+	for _, session := range entries {
+		sessions = append(sessions, &pb.Session{
+			Id:       session.ID,
+			Deviceid: session.DeviceID.String(),
+			Appid:    session.AppID,
 		})
 	}
-	return &pb.InstanceList{Instances: instances}, nil
+	return &pb.SessionList{Sessions: sessions}, nil
 }
 
 func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer) error {
 	log.Println("Listening")
-	for instance := range l.notifications {
-		log.Println(instance)
-		stream.Send(instance)
+	for session := range l.notifications {
+		log.Println(session)
+		stream.Send(session)
 	}
 	return nil
 }
 
-func (l *loggyServer) RegisterSend(ctx context.Context, instanceid *pb.InstanceId) (*empty.Empty, error) {
-	instance := &Instance{}
-	if l.db.Where("id = ?", instanceid.Id).First(&instance).RecordNotFound() {
-		return nil, errors.New("instance not found")
+func (l *loggyServer) RegisterSend(ctx context.Context, sessionid *pb.SessionId) (*empty.Empty, error) {
+	session := &Session{}
+	if l.db.Where("id = ?", sessionid.Id).First(&session).RecordNotFound() {
+		return nil, errors.New("session not found")
 	}
-	l.notifications <- &pb.Instance{
-		Id:       instance.ID.String(),
-		Deviceid: instance.DeviceID.String(),
-		Appid:    instance.AppID.String(),
+	l.notifications <- &pb.Session{
+		Id:       session.ID,
+		Deviceid: session.DeviceID.String(),
+		Appid:    session.AppID,
 	}
 	return &empty.Empty{}, nil
 }
 
-func (l *loggyServer) RegisterReceive(ctx context.Context, instanceid *pb.InstanceId) (*pb.ReceiverId, error) {
+func (l *loggyServer) RegisterReceive(ctx context.Context, sessionid *pb.SessionId) (*pb.ReceiverId, error) {
 	id := int32(len(l.receivers) + 1)
 	l.receivers[id] = make(chan *pb.LoggyMessage, 100)
-	l.listeners[instanceid.Id] = append(l.listeners[instanceid.Id], id)
+	l.listeners[sessionid.Id] = append(l.listeners[sessionid.Id], id)
 	return &pb.ReceiverId{Id: id}, nil
 }
 
@@ -250,7 +212,7 @@ func (l *loggyServer) Send(stream pb.LoggyService_SendServer) error {
 		if err != nil {
 			return err
 		}
-		listeners := l.listeners[in.Instanceid]
+		listeners := l.listeners[in.Sessionid]
 		for _, receiverid := range listeners {
 			if client, ok := l.receivers[receiverid]; ok {
 				client <- in
@@ -281,11 +243,10 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.Results,
 		results = append(results, &pb.Result{
 			Id: hit.ID,
 			Msg: &pb.LoggyMessage{
-				Instanceid: msg.InstanceID.String(),
-				Sessionid:  msg.SessionID,
-				Msg:        msg.Msg,
-				Timestamp:  timestamppb.New(msg.Timestamp),
-				Level:      pb.LoggyMessage_Level(msg.Level),
+				Sessionid: msg.SessionID,
+				Msg:       msg.Msg,
+				Timestamp: timestamppb.New(msg.Timestamp),
+				Level:     pb.LoggyMessage_Level(msg.Level),
 			},
 		})
 	}
@@ -306,7 +267,7 @@ func main() {
 	// Migrate the schema
 	db.AutoMigrate(&Application{})
 	db.AutoMigrate(&Device{})
-	db.AutoMigrate(&Instance{})
+	db.AutoMigrate(&Session{})
 	db.AutoMigrate(&Message{})
 
 	mapping := bleve.NewIndexMapping()
@@ -319,9 +280,9 @@ func main() {
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
 		db:            db,
 		indexer:       indexer,
-		notifications: make(chan *pb.Instance),
+		notifications: make(chan *pb.Session),
 		receivers:     make(map[int32]chan *pb.LoggyMessage),
-		listeners:     make(map[string][]int32),
+		listeners:     make(map[int32][]int32),
 	})
 
 	l, err := net.Listen("tcp", ":50111")

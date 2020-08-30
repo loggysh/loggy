@@ -38,18 +38,18 @@ message DeviceList {
   repeated Device devices = 1;
 }
 
-message Instance {
-    string id = 1;
+message Session {
+    int32 id = 1;
     string deviceid = 2;
     string appid = 3;
 }
 
-message InstanceId {
-    string id = 1;
+message SessionId {
+    int32 id = 1;
 }
 
-message InstanceList {
-  repeated Instance instances =  1;
+message SessionList {
+  repeated Session sessions =  1;
 }
 
 message ReceiverId {
@@ -57,10 +57,9 @@ message ReceiverId {
 }
 
 message LoggyMessage {
-  string instanceid = 1;
-  string sessionid = 2;
-  string msg = 3;
-  google.protobuf.Timestamp timestamp = 4;
+  int32 sessionid = 1;
+  string msg = 2;
+  google.protobuf.Timestamp timestamp = 3;
   enum Level {
     DEBUG = 0;
     INFO = 1;
@@ -68,7 +67,7 @@ message LoggyMessage {
     ERROR = 3;
     CRASH = 4;
   }
-  Level level = 5;
+  Level level = 4;
 }
 
 message Query {
@@ -85,22 +84,19 @@ message Results {
 }
 
 service LoggyService {
-    rpc GetApplication (ApplicationId) returns (Application) {}
-    rpc InsertApplication (Application) returns (ApplicationId) {}
+    rpc GetOrInsertApplication (Application) returns (ApplicationId) {}
     rpc ListApplications (google.protobuf.Empty) returns (ApplicationList) {}
 
-    rpc GetDevice (DeviceId) returns (Device) {}
-    rpc InsertDevice (Device) returns (DeviceId) {}
+    rpc GetOrInsertDevice (Device) returns (DeviceId) {}
     rpc ListDevices (ApplicationId) returns (DeviceList) {}
 
-    rpc GetOrInsertInstance (Instance) returns (InstanceId) {}
-    rpc GetInstance (InstanceId) returns (Instance) {}
-    rpc ListInstances (google.protobuf.Empty) returns (InstanceList) {}
+    rpc GetOrInsertSession (Session) returns (SessionId) {}
+    rpc ListSessions (google.protobuf.Empty) returns (SessionList) {}
 
     rpc Send (stream LoggyMessage) returns (google.protobuf.Empty) {}
-    rpc Notify (google.protobuf.Empty) returns (stream Instance) {}
-    rpc RegisterSend (InstanceId) returns (google.protobuf.Empty) {}
-    rpc RegisterReceive (InstanceId) returns (ReceiverId) {}
+    rpc Notify (google.protobuf.Empty) returns (stream Session) {}
+    rpc RegisterSend (SessionId) returns (google.protobuf.Empty) {}
+    rpc RegisterReceive (SessionId) returns (ReceiverId) {}
     rpc Receive (ReceiverId) returns (stream LoggyMessage) {}
     rpc Search (Query) returns (Results) {}
 }

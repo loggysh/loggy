@@ -55,7 +55,7 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewLoggyServiceClient(conn)
-	appid, err := client.InsertApplication(context.Background(), &pb.Application{
+	appid, err := client.GetOrInsertApplication(context.Background(), &pb.Application{
 		PackageName: "com.swiggy.android",
 		Name:        "Swiggy",
 		Icon:        "swiggy.svg",
@@ -66,7 +66,7 @@ func main() {
 
 	fmt.Printf("Application ID: %s\n", appid)
 
-	deviceid, err := client.InsertDevice(context.Background(), &pb.Device{
+	deviceid, err := client.GetOrInsertDevice(context.Background(), &pb.Device{
 		Id:      uuid.NewV4().String(),
 		Details: "{'name': 'Xiaomi Note 5'}",
 	})
@@ -76,17 +76,17 @@ func main() {
 
 	fmt.Printf("Device ID: %s\n", deviceid)
 
-	instanceid, err := client.GetOrInsertInstance(context.Background(), &pb.Instance{
+	sessionid, err := client.GetOrInsertSession(context.Background(), &pb.Session{
 		Deviceid: deviceid.Id,
 		Appid:    appid.Id,
 	})
 	if err != nil {
-		log.Fatalf("failed to add app: %s", err)
+		log.Fatalf("failed to add session: %s", err)
 	}
 
-	fmt.Printf("Instance ID: %s\n", instanceid)
+	fmt.Printf("Session ID: %s\n", sessionid)
 
-	_, err = client.RegisterSend(context.Background(), &pb.InstanceId{Id: instanceid.Id})
+	_, err = client.RegisterSend(context.Background(), &pb.SessionId{Id: session.Id})
 	if err != nil {
 		log.Fatalf("failed to register: %s", err)
 	}
@@ -98,12 +98,11 @@ func main() {
 		for {
 			time.Sleep(time.Second)
 			msg := &pb.LoggyMessage{
-				Instanceid: instanceid.Id,
-				Sessionid:  uuid.NewV4().String(),
-				Msg:        babble(),
-				Timestamp:  ptypes.TimestampNow(),
+				Sessionid: session.Id,
+				Msg:       babble(),
+				Timestamp: ptypes.TimestampNow(),
 			}
-			log.Printf("Instance: %s, Session: %s: %s\n", msg.Instanceid, msg.Sessionid, msg.Msg)
+			log.Printf("Sesssion - %s: %s: %s\n", msg.Sessionid, msg.Msg)
 			stream.Send(msg)
 		}
 	}()
