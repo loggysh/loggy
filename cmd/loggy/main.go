@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -93,6 +94,7 @@ func (m *Message) String() string {
 }
 
 type loggyServer struct {
+	lock          sync.RWMutex
 	db            *gorm.DB
 	indexer       bleve.Index
 	notifications chan *pb.Session
@@ -226,6 +228,9 @@ func (l *loggyServer) RegisterSend(ctx context.Context, sessionid *pb.SessionId)
 }
 
 func (l *loggyServer) RegisterReceive(ctx context.Context, sessionid *pb.SessionId) (*pb.ReceiverId, error) {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
 	id := int32(len(l.receivers) + 1)
 	l.receivers[id] = make(chan *pb.Message, 100)
 	l.listeners[sessionid.Id] = append(l.listeners[sessionid.Id], id)
@@ -242,17 +247,22 @@ func (l *loggyServer) Send(stream pb.LoggyService_SendServer) error {
 		if err != nil {
 			return err
 		}
+		l.lock.RLock()
 		listeners := l.listeners[in.Sessionid]
 		for _, receiverid := range listeners {
 			if client, ok := l.receivers[receiverid]; ok {
 				client <- in
 			}
 		}
+		l.lock.RUnlock()
 	}
 }
 
 func (l *loggyServer) Receive(receiverid *pb.ReceiverId, stream pb.LoggyService_ReceiveServer) error {
+	l.lock.RLock()
 	client := l.receivers[receiverid.Id]
+	l.lock.RUnlock()
+
 	for in := range client {
 		stream.Send(in)
 	}
