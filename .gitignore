@@ -5,3 +5,4 @@ test.db
 logs/
 loggy.index
 kratos
+package-lock.json
