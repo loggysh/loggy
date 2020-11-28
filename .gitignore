@@ -4,3 +4,4 @@ loggy/loggy_grpc.pb.go
 test.db
 logs/
 loggy.index
+kratos

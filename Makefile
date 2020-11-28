@@ -1,3 +1,6 @@
+kratos:
+	sh <(curl https://raw.githubusercontent.com/ory/kratos/v0.5.4-alpha.1/install.sh) -b . v0.5.4-alpha.1
+
 all:
 	protoc --go_out=. -I loggy --go-grpc_out=requireUnimplementedServers=false:. loggy/loggy.proto 
 	mv github.com/tuxcanfly/loggy/loggy/loggy_grpc.pb.go loggy/
