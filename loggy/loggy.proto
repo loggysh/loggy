@@ -93,6 +93,7 @@ service LoggyService {
     rpc ListSessions (SessionQuery) returns (SessionList) {}
 
     rpc ListSessionMessages(SessionId) returns (MessageList) {}
+    rpc FilterSessionMessages(SessionId) returns (MessageList) {}
 
     rpc Send (stream Message) returns (google.protobuf.Empty) {}
     rpc Notify (google.protobuf.Empty) returns (stream Session) {}

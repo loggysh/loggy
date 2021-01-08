@@ -205,6 +205,21 @@ func (l *loggyServer) ListSessionMessages(ctx context.Context, sessionid *pb.Ses
 	return &pb.MessageList{Messages: messages}, nil
 }
 
+func (l *loggyServer) FilterSessionMessages(ctx context.Context, sessionid *pb.SessionId) (*pb.MessageList, error) {
+	var entries []*Message
+	var messages []*pb.Message
+	l.db.Where("session_id = ?", sessionid.Id).Where("level = ?", 4).Find(&entries)
+	for _, message := range entries {
+		messages = append(messages, &pb.Message{
+			Sessionid: message.SessionID,
+			Msg:       message.Msg,
+			Timestamp: timestamppb.New(message.Timestamp),
+			Level:     loggy.Message_Level(message.Level),
+		})
+	}
+	return &pb.MessageList{Messages: messages}, nil
+}
+
 func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer) error {
 	log.Println("Listening")
 	for session := range l.notifications {
