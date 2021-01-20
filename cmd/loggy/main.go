@@ -50,8 +50,9 @@ type Device struct {
 type Session struct {
 	Base
 	ID       int32
-	AppID    string    `gorm:"type:string;column:application_foreign_key;not null;"`
 	DeviceID uuid.UUID `gorm:"type:uuid;column:device_foreign_key;not null;"`
+	AppID    string    `gorm:"type:string;column:application_foreign_key;not null;"`
+	UserID   string
 }
 
 type LogLevel int
@@ -117,7 +118,11 @@ func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Applic
 	}, nil
 }
 
-func (l *loggyServer) ListApplications(ctx context.Context, e *empty.Empty) (*pb.ApplicationList, error) {
+func (l *loggyServer) ListApplications(ctx context.Context, userid *pb.UserID) (*pb.ApplicationList, error) {
+	userid, err := uuid.FromString()
+	if err != nil {
+		return nil, err
+	}
 	var entries []*Application
 	var apps []*pb.Application
 	l.db.Find(&entries)

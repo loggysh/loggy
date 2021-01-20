@@ -5,7 +5,7 @@ import "google/protobuf/empty.proto";
 
 option go_package = "github.com/tuxcanfly/loggy/loggy;loggy";
 option java_multiple_files = true;
-option java_package = "sh.loggy";
+option java_package = "loggy.sh";
 option java_outer_classname = "LoggyProto";
 
 package loggy;
@@ -82,9 +82,13 @@ message Query {
   string query = 1;
 }
 
+message UserId {
+  string id = 1;
+}
+
 service LoggyService {
     rpc GetOrInsertApplication (Application) returns (Application) {}
-    rpc ListApplications (google.protobuf.Empty) returns (ApplicationList) {}
+    rpc ListApplications (UserId) returns (ApplicationList) {}
 
     rpc GetOrInsertDevice (Device) returns (Device) {}
     rpc ListDevices (ApplicationId) returns (DeviceList) {}
