@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,9 +37,10 @@ type Base struct {
 
 type Application struct {
 	Base
-	ID   string
-	Name string
-	Icon string
+	ID     string
+	UserID string
+	Name   string
+	Icon   string
 }
 
 type Device struct {
@@ -52,7 +54,6 @@ type Session struct {
 	ID       int32
 	DeviceID uuid.UUID `gorm:"type:uuid;column:device_foreign_key;not null;"`
 	AppID    string    `gorm:"type:string;column:application_foreign_key;not null;"`
-	UserID   string
 }
 
 type LogLevel int
@@ -101,13 +102,22 @@ type loggyServer struct {
 	notifications chan *pb.Session
 	receivers     map[int32]chan *pb.Message
 	listeners     map[int32][]int32 // sessionid -> []receivers
+
+	loggy.UnimplementedLoggyServiceServer
 }
 
 func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.Application, error) {
+	split := strings.SplitN(app.Id, "/", 2)
+	if len(split) != 2 {
+		return &pb.Application{}, errors.New("invalid app id")
+	}
+	userID := split[0]
+	appID := split[1]
 	entry := &Application{
-		ID:   app.Id,
-		Name: app.Name,
-		Icon: app.Icon,
+		ID:     appID,
+		UserID: userID,
+		Name:   app.Name,
+		Icon:   app.Icon,
 	}
 	exists := &Application{}
 	l.db.Where(entry).FirstOrCreate(&exists)
@@ -118,13 +128,11 @@ func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Applic
 	}, nil
 }
 
-func (l *loggyServer) ListApplications(ctx context.Context, userid *pb.UserID) (*pb.ApplicationList, error) {
-	userid, err := uuid.FromString()
-	if err != nil {
-		return nil, err
-	}
+func (l *loggyServer) ListApplications(ctx context.Context, userid *pb.UserId) (*pb.ApplicationList, error) {
+	query := fmt.Sprintf("%s%%", userid.Id)
 	var entries []*Application
 	var apps []*pb.Application
+	l.db.Where("ID LIKE ?", query).Find(&entries)
 	l.db.Find(&entries)
 	for _, app := range entries {
 		apps = append(apps, &pb.Application{

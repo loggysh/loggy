@@ -55,7 +55,7 @@ func main() {
 
 	client := pb.NewLoggyServiceClient(conn)
 	app, err := client.GetOrInsertApplication(context.Background(), &pb.Application{
-		Id:   "com.loggy.android",
+		Id:   "ecf9b10a-59be-44c7-8916-2b8cbb36c6b3/com.loggy.android",
 		Name: "Loggy",
 		Icon: "loggy.svg",
 	})
