@@ -129,11 +129,9 @@ func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Applic
 }
 
 func (l *loggyServer) ListApplications(ctx context.Context, userid *pb.UserId) (*pb.ApplicationList, error) {
-	query := fmt.Sprintf("%s%%", userid.Id)
 	var entries []*Application
 	var apps []*pb.Application
-	l.db.Where("ID LIKE ?", query).Find(&entries)
-	l.db.Find(&entries)
+	l.db.Where("user_id = ?", userid.Id).Find(&entries)
 	for _, app := range entries {
 		apps = append(apps, &pb.Application{
 			Id:   app.ID,
