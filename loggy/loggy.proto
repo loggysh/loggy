@@ -86,6 +86,14 @@ message UserId {
   string id = 1;
 }
 
+message SessionStats {
+  int32 debug_count = 1;
+  int32 info_count = 2;
+  int32 warn_count = 3;
+  int32 error_count = 4;
+  int32 crash_count = 5;
+}
+
 service LoggyService {
     rpc GetOrInsertApplication (Application) returns (Application) {}
     rpc ListApplications (UserId) returns (ApplicationList) {}
@@ -95,6 +103,7 @@ service LoggyService {
 
     rpc InsertSession (Session) returns (SessionId) {}
     rpc ListSessions (SessionQuery) returns (SessionList) {}
+    rpc GetSessionStats(SessionId) returns (SessionStats) {}
 
     rpc ListSessionMessages(SessionId) returns (MessageList) {}
 

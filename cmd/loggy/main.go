@@ -218,6 +218,26 @@ func (l *loggyServer) ListSessionMessages(ctx context.Context, sessionid *pb.Ses
 	return &pb.MessageList{Messages: messages}, nil
 }
 
+func (l *loggyServer) GetSessionStats(ctx context.Context, sessionid *pb.SessionId) (*pb.SessionStats, error) {
+	var debugCount int32
+	var infoCount int32
+	var errorCount int32
+	var warnCount int32
+	var crashCount int32
+	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 0).Count(&debugCount)
+	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 1).Count(&infoCount)
+	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 2).Count(&errorCount)
+	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 3).Count(&warnCount)
+	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 4).Count(&crashCount)
+	return &pb.SessionStats{
+		DebugCount: debugCount,
+		InfoCount:  infoCount,
+		ErrorCount: errorCount,
+		WarnCount:  warnCount,
+		CrashCount: crashCount,
+	}, nil
+}
+
 func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer) error {
 	log.Println("Listening")
 	for session := range l.notifications {
