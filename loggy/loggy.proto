@@ -86,6 +86,10 @@ message UserId {
   string id = 1;
 }
 
+message WaitListUser {
+  string email = 1;
+}
+
 message SessionStats {
   int32 debug_count = 1;
   int32 info_count = 2;
@@ -95,6 +99,8 @@ message SessionStats {
 }
 
 service LoggyService {
+    rpc InsertWaitListUser (WaitListUser) returns (google.protobuf.Empty) {}
+
     rpc GetOrInsertApplication (Application) returns (Application) {}
     rpc ListApplications (UserId) returns (ApplicationList) {}
 

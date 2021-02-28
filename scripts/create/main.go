@@ -18,14 +18,13 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewLoggyServiceClient(conn)
-	appid, err := client.InsertApplication(context.Background(), &pb.Application{
-		PackageName: "sh.loggy.android",
-		Name:        "Loggy",
-		Icon:        "loggy.svg",
+	emailID, err := client.InsertWaitListUser(context.Background(), &pb.WaitListUser{
+		Email: "feedback@loggy.sh",
 	})
+	fmt.Println(emailID)
 	if err != nil {
-		log.Fatalf("failed to add app: %s", err)
+		log.Fatalf("failed to add waitlist user: %s", err)
 	}
 
-	fmt.Printf("Application ID: %s\n", appid)
+	fmt.Printf("Email ID: %s\n", emailID)
 }
