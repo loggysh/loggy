@@ -56,6 +56,10 @@ type Session struct {
 	AppID    string    `gorm:"type:string;column:application_foreign_key;not null;"`
 }
 
+type WaitlistUser struct {
+	Email string `gorm:"primary_key;"`
+}
+
 type LogLevel int
 
 const (
@@ -104,6 +108,14 @@ type loggyServer struct {
 	listeners     map[int32][]int32 // sessionid -> []receivers
 
 	loggy.UnimplementedLoggyServiceServer
+}
+
+func (l *loggyServer) InsertWaitListUser(ctx context.Context, app *pb.WaitListUser) (*empty.Empty, error) {
+	entry := &WaitlistUser{
+		Email: app.Email,
+	}
+	l.db.Where(entry).FirstOrCreate(&entry)
+	return &empty.Empty{}, nil
 }
 
 func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.Application, error) {
