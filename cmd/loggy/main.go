@@ -173,10 +173,15 @@ func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) 
 
 func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) (*pb.DeviceList, error) {
 	var devices []*pb.Device
-	var entries []*Session
-	l.db.Where("application_foreign_key = ?", appid.Id).Find(&entries)
-	for _, entry := range entries {
-		l.db.Where("id = ?", entry.DeviceID).Find(&devices)
+	var sessions []*Session
+	l.db.Where("application_foreign_key = ?", appid.Id).Select("distinct(device_foreign_key)").Find(&sessions)
+	for _, session := range sessions {
+		device := &Device{}
+		l.db.Where("id = ?", session.DeviceID).First(&device)
+		devices = append(devices, &pb.Device{
+			Id:      device.ID.String(),
+			Details: device.Details,
+		})
 	}
 	return &pb.DeviceList{Devices: devices}, nil
 }
