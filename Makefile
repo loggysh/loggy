@@ -1,5 +1,5 @@
 all:
-	protoc --go_out=. -I loggy --go-grpc_out=requireUnimplementedServers=false:. loggy/loggy.proto 
+	protoc --go_out=. -I loggy --go-grpc_out=require_unimplemented_servers=false:. loggy/loggy.proto
 	mv github.com/tuxcanfly/loggy/loggy/loggy_grpc.pb.go loggy/
 	mv github.com/tuxcanfly/loggy/loggy/loggy.pb.go loggy/
 	go build -o loggy.exe ./cmd/loggy
