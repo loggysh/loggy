@@ -17,11 +17,14 @@ ENV PATH=$PATH:$GOPATH/bin:/opt/protoc/bin
 
 RUN mkdir -p /go/src/loggy
 
+WORKDIR /go/src/loggy
+
 COPY . /go/src/loggy
 
-RUN cd /go/src/loggy && make
+RUN make
 
-ENTRYPOINT cd /go/src/loggy && ./loggy.exe
+
+CMD ./loggy.exe
 
 
 
