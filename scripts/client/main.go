@@ -67,7 +67,7 @@ func main() {
 
 	device, err := client.GetOrInsertDevice(context.Background(), &pb.Device{
 		Id:      "5b11da9b-35a9-4c87-99b1-def6ca91ace7",
-		Details: `{"device_name":"","application_name":"Loggy","application_version":"0.3","android_os_version":"4.14.112+(5891938)","android_api_level":"29","device_type":"generic_x86","device_model":"Android SDK built for x86 sdk_gphone_x86"}`,
+		Details: `{"device_name":"Sample","application_name":"Loggy","application_version":"0.3","android_os_version":"4.14.112+(5891938)","android_api_level":"29","device_type":"generic_x86","device_model":"Android SDK built for x86 sdk_gphone_x86"}`,
 	})
 	if err != nil {
 		log.Fatalf("failed to add device: %s", err)
