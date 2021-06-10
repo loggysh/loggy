@@ -340,7 +340,7 @@ func main() {
 	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
 	flag.Parse()
 
-	db, err := gorm.Open("sqlite3", "test.db")
+	db, err := gorm.Open("sqlite3", "/db/test.db")
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
