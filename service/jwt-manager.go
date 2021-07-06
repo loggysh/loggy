@@ -30,7 +30,7 @@ func (manager *JWTManager) Generate(user *User) (string, error) {
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(manager.tokenDuration).Unix(),
 		},
-		Username: user.User,
+		Username: user.Name,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

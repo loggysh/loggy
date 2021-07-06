@@ -10,7 +10,7 @@ var GlobalDB *gorm.DB
 
 // InitDatabase creates a sqlite db
 func InitDatabase() (err error) {
-	GlobalDB, err = gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	GlobalDB, err = gorm.Open(sqlite.Open("db/user.db"), &gorm.Config{})
 	if err != nil {
 		return
 	}
