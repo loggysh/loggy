@@ -4,10 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"github.com/tuxcanfly/loggy/auth/database"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"io"
 	"log"
@@ -15,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/blevesearch/bleve"
 	empty "github.com/golang/protobuf/ptypes/empty"
@@ -267,13 +265,21 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	}
 	return &pb.MessageList{Messages: messages}, nil
 }
-// Login is a unary RPC to login user
+/* Login is a unary RPC to login user which I'll be leaving out for now since we're using REST Server for authentication
 func (l *loggyServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	//user := l.db.Where("email = ?", req.GetEmail())
+	var entry *service.User
+	var user *pb.UserId
+	l.db.Where("email = ?", req.Email).Model()
+
+	token, err := l.jwtManager.Generate(entry)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "cannot generate access token")
+	}
 
 
 
-	/*if user == nil || !user.CheckPassword(req.GetPassword()) {
+
+	if user == nil || !user.CheckPassword(req.GetPassword()) {
 		return nil, status.Errorf(codes.NotFound, "incorrect username/password")
 	}
 
@@ -283,28 +289,12 @@ func (l *loggyServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 	}
 
 	res := &pb.LoginResponse{AccessToken: token}
-	return res, nil */
-}
-
-func unaryInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (interface{}, error) {
-	log.Println("--> unary interceptor: ", info.FullMethod)
-	return handler(ctx, req)
-}
-func streamInterceptor(
-	srv interface{},
-	stream grpc.ServerStream,
-	info *grpc.StreamServerInfo,
-	handler grpc.StreamHandler,
-) error {
-	log.Println("--> stream interceptor: ", info.FullMethod)
-	return handler(srv, stream)
-}
-
+	return res, nil
+} */
+const (
+	secretKey     = "secret"
+	tokenDuration = 15 * time.Minute
+)
 func main() {
 	prefix := flag.String("prefix", "logs", "Prefix for logs. (logs)")
 	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
@@ -332,10 +322,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create index: %v", err)
 	}
-
+	jwtManager := service.NewJWTManager(secretKey, tokenDuration)
+	interceptor := service.NewAuthInterceptor(jwtManager)
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(unaryInterceptor),
-		grpc.StreamInterceptor(streamInterceptor),
+		grpc.UnaryInterceptor(interceptor.Unary()),
+		grpc.StreamInterceptor(interceptor.Stream()),
 		)
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
 		db:            db,
