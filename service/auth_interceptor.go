@@ -71,5 +71,5 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		return status.Errorf(codes.Unauthenticated, "access token is invalid: %v", err)
 	}
 
-	return status.Error(codes.PermissionDenied, "no permission to access this RPC")
+	return nil
 }
