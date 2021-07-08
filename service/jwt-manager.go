@@ -16,7 +16,7 @@ type JWTManager struct {
 // UserClaims is a custom JWT claims that contains some user's information
 type UserClaims struct {
 	jwt.StandardClaims
-	Username string `json:"username"`
+	Email string `json:"email"`
 }
 
 // NewJWTManager returns a new JWT manager
@@ -30,7 +30,7 @@ func (manager *JWTManager) Generate(user *User) (string, error) {
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(manager.tokenDuration).Unix(),
 		},
-		Username: user.Name,
+		Email: user.Email,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
