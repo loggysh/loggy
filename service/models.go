@@ -17,7 +17,7 @@ type Base struct {
 type Application struct {
 	Base
 	ID     string
-	UserID string
+	UserID string	`gorm:"type:uuid;column:user_foreign_key;not null;"`
 	Name   string
 	Icon   string
 }
@@ -40,6 +40,7 @@ type WaitlistUser struct {
 }
 type User struct {
 	Base
+	ID		 uuid.UUID `gorm:"type:uuid;primary_key;"`
 	Name     string `json:"name"`
 	Email    string `json:"email" gorm:"unique"`
 	Password string `json:"password"`
