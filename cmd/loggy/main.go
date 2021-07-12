@@ -30,7 +30,6 @@ var IndexPath = "loggy.index"
 
 
 type loggyServer struct {
-	jwtManager *service.JWTManager
 	lock          sync.RWMutex
 	db            *gorm.DB
 	indexer       bleve.Index
@@ -265,32 +264,6 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	}
 	return &pb.MessageList{Messages: messages}, nil
 }
-/* Login is a unary RPC to login user which I'll be leaving out for now since we're using REST Server for authentication
-func (l *loggyServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	var entry *service.User
-	var user *pb.UserId
-	l.db.Where("email = ?", req.Email).Model()
-
-	token, err := l.jwtManager.Generate(entry)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "cannot generate access token")
-	}
-
-
-
-
-	if user == nil || !user.CheckPassword(req.GetPassword()) {
-		return nil, status.Errorf(codes.NotFound, "incorrect username/password")
-	}
-
-	token, err := l.jwtManager.Generate(user)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "cannot generate access token")
-	}
-
-	res := &pb.LoginResponse{AccessToken: token}
-	return res, nil
-} */
 const (
 	secretKey     = "secret"
 	tokenDuration = 15 * time.Minute
@@ -311,7 +284,6 @@ func main() {
 	db.AutoMigrate(&service.Device{})
 	db.AutoMigrate(&service.Session{})
 	db.AutoMigrate(&service.Message{})
-	db.AutoMigrate(&service.User{})
 
 	var indexer bleve.Index
 	if _, err := os.Stat(IndexPath); os.IsNotExist(err) {
@@ -322,8 +294,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create index: %v", err)
 	}
-	jwtManager := service.NewJWTManager(secretKey, tokenDuration)
-	interceptor := service.NewAuthInterceptor(jwtManager)
+
+	interceptor := service.NewAuthInterceptor("Auth")
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(interceptor.Unary()),
 		grpc.StreamInterceptor(interceptor.Stream()),

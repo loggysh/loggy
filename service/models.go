@@ -38,13 +38,6 @@ type Session struct {
 type WaitlistUser struct {
 	Email string `gorm:"primary_key;"`
 }
-type User struct {
-	Base
-	ID		 uuid.UUID `gorm:"type:uuid;primary_key;"`
-	Name     string `json:"name"`
-	Email    string `json:"email" gorm:"unique"`
-	Password string `json:"password"`
-}
 
 type LogLevel int
 

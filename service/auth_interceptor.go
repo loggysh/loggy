@@ -1,20 +1,25 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"os"
 )
 
 type AuthInterceptor struct {
-	jwtManager      *JWTManager
+	name string
 }
 
-func NewAuthInterceptor(jwtManager *JWTManager) *AuthInterceptor {
-	return &AuthInterceptor{jwtManager}
+func NewAuthInterceptor(name string) *AuthInterceptor {
+	return &AuthInterceptor{name}
 }
 
 func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
@@ -60,16 +65,50 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		return status.Errorf(codes.Unauthenticated, "metadata is not provided")
 	}
 
-	values := md["authorization"]
-	if len(values) == 0 {
+	token := md["authorization"]
+	if len(token) == 0 {
 		return status.Errorf(codes.Unauthenticated, "authorization token is not provided")
 	}
-
-	accessToken := values[0]
-	_, err := interceptor.jwtManager.Verify(accessToken)
+	userID := md["user_id"]
+	if len(userID) == 0 {
+		return status.Errorf(codes.Unauthenticated, "user id is not provided")
+	}
+	//Encode the data
+	postBody, _ := json.Marshal(map[string]string{
+		"Token":  token[0],
+		"UserID": userID[0],
+	})
+	responseBody := bytes.NewBuffer(postBody)
+	//Leverage Go's HTTP Post function to make request
+	resp, err := http.Post(BuildUrl(), "application/json", responseBody)
+	//Handle Error
 	if err != nil {
-		return status.Errorf(codes.Unauthenticated, "access token is invalid: %v", err)
+		log.Fatalf("An Error Occured %v", err)
 	}
 
+	defer resp.Body.Close()
+	//Read the response body
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	sb := string(body)
+	if sb != `"message": "token valid"`{
+		return status.Error(codes.PermissionDenied, "no permission to access this RPC")
+	}
 	return nil
+}
+
+
+func BuildUrl() (s string) {
+	if os.Getenv("DOMAIN") == "localhost" {
+		authUrl := "http://localhost:8080/api/public/verify"
+		return authUrl
+	} else if len(os.Getenv("DOMAIN")) ==0{
+		authUrl := "http://localhost:8080/api/public/verify"
+		return authUrl
+	} else {
+		authUrl := "http://" + os.Getenv("DOMAIN") + ":8080/api/public/verify"
+		return authUrl
+	}
 }

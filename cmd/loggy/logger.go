@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/tuxcanfly/loggy/service"
 	"io"
 	"log"
 
@@ -61,11 +62,11 @@ func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {
 				if err != nil {
 					log.Printf("failed to connect: %s", err)
 				}
-				msg := Message{
+				msg := service.Message{
 					SessionID: in.Sessionid,
 					Msg:       in.Msg,
 					Timestamp: in.Timestamp.AsTime(),
-					Level:     LogLevel(in.Level),
+					Level:     service.LogLevel(in.Level),
 				}
 				if db.Create(&msg).Error != nil {
 					log.Println("unable to create message")
