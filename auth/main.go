@@ -23,6 +23,7 @@ func setupRouter() *gin.Engine {
 		{
 			public.POST("/login", controller.Login)
 			public.POST("/signup", controller.Signup)
+			public.POST("/verify", controller.Verify)
 		}
 	}
 
@@ -35,8 +36,14 @@ func main() {
 		log.Fatalln("could not create database", err)
 	}
 
-	database.GlobalDB.AutoMigrate(&models.User{})
+	err = database.GlobalDB.AutoMigrate(&models.User{})
+	if err != nil {
+		log.Fatalf("%v\n", err)
+	}
 
 	r := setupRouter()
-	r.Run(":8080")
+	err = r.Run(":8080")
+	if err != nil {
+		log.Fatalf("%v\n", err)
+	}
 }

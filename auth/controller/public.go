@@ -18,7 +18,7 @@ func Signup(c *gin.Context) {
 		log.Println(err)
 
 		c.JSON(400, gin.H{
-			"msg": "invalid json",
+			"error": err.Error(),
 		})
 		c.Abort()
 
@@ -29,8 +29,8 @@ func Signup(c *gin.Context) {
 	if err != nil {
 		log.Println(err.Error())
 
-		c.JSON(500, gin.H{
-			"msg": "error hashing password",
+		c.JSON(400, gin.H{
+			"error": err.Error(),
 		})
 		c.Abort()
 
@@ -41,8 +41,8 @@ func Signup(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 
-		c.JSON(500, gin.H{
-			"msg": "error creating user",
+		c.JSON(400, gin.H{
+			"error": err.Error(),
 		})
 		c.Abort()
 
@@ -61,6 +61,7 @@ type LoginPayload struct {
 // LoginResponse token response
 type LoginResponse struct {
 	Token string `json:"token"`
+	UserID string `json:"user_id"`
 }
 
 // Login logs users in
@@ -71,7 +72,7 @@ func Login(c *gin.Context) {
 	err := c.ShouldBindJSON(&payload)
 	if err != nil {
 		c.JSON(400, gin.H{
-			"msg": "invalid json",
+			"error": err.Error(),
 		})
 		c.Abort()
 		return
@@ -91,7 +92,7 @@ func Login(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 		c.JSON(401, gin.H{
-			"msg": "invalid user credentials",
+			"error": err.Error(),
 		})
 		c.Abort()
 		return
@@ -106,8 +107,8 @@ func Login(c *gin.Context) {
 	signedToken, err := jwtWrapper.GenerateToken(user.Email)
 	if err != nil {
 		log.Println(err)
-		c.JSON(500, gin.H{
-			"msg": "error signing token",
+		c.JSON(400, gin.H{
+			"error": err.Error(),
 		})
 		c.Abort()
 		return
@@ -115,9 +116,41 @@ func Login(c *gin.Context) {
 
 	tokenResponse := LoginResponse{
 		Token: signedToken,
+		UserID: user.ID,
 	}
 
 	c.JSON(200, tokenResponse)
 
 	return
+}
+func Verify(c *gin.Context) {
+	var payload LoginResponse
+	err := c.ShouldBindJSON(&payload)
+	if err != nil {
+		log.Println(err)
+
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		c.Abort()
+
+		return
+	}
+	jwtWrapper := jwt.Wrapper{
+		SecretKey:       "verysecretkey",
+		Issuer:          "AuthService",
+		ExpirationHours: 24,
+	}
+	_, err = jwtWrapper.ValidateToken(payload.Token)
+	if err != nil {
+		log.Println(err)
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		c.Abort()
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": "token valid",
+	})
 }

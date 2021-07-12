@@ -1,8 +1,9 @@
 package models
 
 import (
+	"encoding/hex"
+	uuid "github.com/satori/go.uuid"
 	"github.com/tuxcanfly/loggy/auth/database"
-
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -10,11 +11,17 @@ import (
 // User defines the user in db
 type User struct {
 	gorm.Model
+	ID		 string `gorm:"type:uuid;primary_key;"`
 	Name     string `json:"name"`
 	Email    string `json:"email" gorm:"unique"`
 	Password string `json:"password"`
 }
-
+func (user *User) BeforeCreate(tx *gorm.DB) (err error) {
+	u := uuid.NewV4()
+	uString := hex.EncodeToString(u.Bytes())
+	user.ID = uString
+	return
+}
 // CreateUserRecord creates a user record in the database
 func (user *User) CreateUserRecord() error {
 	result := database.GlobalDB.Create(&user)
