@@ -47,14 +47,16 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
 	) error {
-		log.Println("--> stream interceptor: ", info.FullMethod)
+		//log.Println("--> stream interceptor: ", info.FullMethod)
+		if info.FullMethod != "/loggy.LoggyService/Notify" {
+			err := interceptor.authorize(stream.Context(), info.FullMethod)
+			if err != nil {
+				return err
+			}
 
-		err := interceptor.authorize(stream.Context(), info.FullMethod)
-		if err != nil {
-			return err
+			return handler(srv, stream)
 		}
-
-		return handler(srv, stream)
+		return nil
 	}
 
 }
