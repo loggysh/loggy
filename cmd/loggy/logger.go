@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/tuxcanfly/loggy/service"
+	"google.golang.org/grpc/metadata"
 	"io"
 	"log"
 
@@ -23,6 +24,8 @@ func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {
 	defer conn.Close()
 
 	client := pb.NewLoggyServiceClient(conn)
+	header := metadata.New(map[string]string{"authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6ImFiZHVsQHRlc3QuY29tIiwiZXhwIjoxNjI2MzA1MTQ5LCJpc3MiOiJBdXRoU2VydmljZSJ9.1mEgMKWn9Ew0AWZ7OICs8jSdgbkw8fkN9NxOcL7zrRo", "user_id":  "95f7ef4b6d4d42ba8dd31531069227e8"})
+	ctx := metadata.NewOutgoingContext(context.Background(), header)
 
 	stream, err := client.Notify(context.Background(), &empty.Empty{})
 	if err != nil {
@@ -39,7 +42,7 @@ func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {
 		}
 		log.Println(session)
 
-		receiverid, err := client.RegisterReceive(context.Background(), &pb.SessionId{Id: session.Id})
+		receiverid, err := client.RegisterReceive(ctx, &pb.SessionId{Id: session.Id})
 		if err != nil {
 			log.Printf("failed to register receive: %s", err)
 		}
@@ -47,7 +50,7 @@ func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {
 		log.Println(receiverid)
 
 		go func(session *pb.Session, receiverid *pb.ReceiverId, indexer bleve.Index, db *gorm.DB) {
-			stream, err := client.Receive(context.Background(), receiverid)
+			stream, err := client.Receive(ctx, receiverid)
 			if err != nil {
 				log.Printf("failed to receive: %s", err)
 			}

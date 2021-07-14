@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -47,16 +48,14 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
 	) error {
-		//log.Println("--> stream interceptor: ", info.FullMethod)
+		log.Println("--> stream interceptor: ", info.FullMethod)
 		if info.FullMethod != "/loggy.LoggyService/Notify" {
 			err := interceptor.authorize(stream.Context(), info.FullMethod)
 			if err != nil {
 				return err
 			}
-
-			return handler(srv, stream)
 		}
-		return nil
+		return handler(srv, stream)
 	}
 
 }
@@ -68,6 +67,7 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 	}
 
 	token := md["authorization"]
+
 	if len(token) == 0 {
 		return status.Errorf(codes.Unauthenticated, "authorization token is not provided")
 	}
@@ -94,8 +94,10 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	sb := string(body)
-	if sb != `"message": "token valid"`{
+	fmt.Println(sb)
+	if sb != `{"message":"token valid"}`{
 		return status.Error(codes.PermissionDenied, "no permission to access this RPC")
 	}
 	return nil

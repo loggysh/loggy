@@ -130,7 +130,7 @@ func Verify(c *gin.Context) {
 		log.Println(err)
 
 		c.JSON(400, gin.H{
-			"error": err.Error(),
+			"message": err.Error(),
 		})
 		c.Abort()
 
@@ -145,7 +145,7 @@ func Verify(c *gin.Context) {
 	if err != nil {
 		log.Println(err)
 		c.JSON(400, gin.H{
-			"error": err.Error(),
+			"message": err.Error(),
 		})
 		c.Abort()
 		return
