@@ -98,6 +98,15 @@ message SessionStats {
   int32 crash_count = 5;
 }
 
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+}
+
 service LoggyService {
     rpc InsertWaitListUser (WaitListUser) returns (google.protobuf.Empty) {}
 
@@ -119,4 +128,6 @@ service LoggyService {
     rpc RegisterReceive (SessionId) returns (ReceiverId) {}
     rpc Receive (ReceiverId) returns (stream Message) {}
     rpc Search (Query) returns (MessageList) {}
+
+    rpc Login(LoginRequest) returns (LoginResponse) {}
 }

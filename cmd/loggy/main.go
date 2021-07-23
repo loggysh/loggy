@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"fmt"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"io"
 	"log"
 	"net"
@@ -12,9 +13,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/blevesearch/bleve"
 	empty "github.com/golang/protobuf/ptypes/empty"
@@ -24,80 +22,12 @@ import (
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+
+	"github.com/tuxcanfly/loggy/service"
 )
 
 var IndexPath = "loggy.index"
 
-// Base contains common columns for all tables.
-type Base struct {
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time `sql:"index"`
-}
-
-type Application struct {
-	Base
-	ID     string
-	UserID string
-	Name   string
-	Icon   string
-}
-
-type Device struct {
-	Base
-	ID      uuid.UUID `gorm:"type:uuid;primary_key;"`
-	Details string
-}
-
-type Session struct {
-	Base
-	ID       int32
-	DeviceID uuid.UUID `gorm:"type:uuid;column:device_foreign_key;not null;"`
-	AppID    string    `gorm:"type:string;column:application_foreign_key;not null;"`
-}
-
-type WaitlistUser struct {
-	Email string `gorm:"primary_key;"`
-}
-
-type LogLevel int
-
-const (
-	DEBUG LogLevel = iota
-	INFO
-	WARN
-	ERROR
-	CRASH
-)
-
-type Message struct {
-	ID int
-	Base
-	SessionID int32
-	Session   Session
-	Msg       string
-	Timestamp time.Time
-	Level     LogLevel
-}
-
-func (m *Message) String() string {
-	var level string
-	switch m.Level {
-	case DEBUG:
-		level = "DEBUG"
-	case INFO:
-		level = "INFO"
-	case WARN:
-		level = "WARN"
-	case ERROR:
-		level = "ERROR"
-	case CRASH:
-		level = "CRASH"
-	default:
-		level = "undefined"
-	}
-	return fmt.Sprintf("%v :: %d :: <%s> :: %s", m.Timestamp, m.SessionID, level, m.Msg)
-}
 
 type loggyServer struct {
 	lock          sync.RWMutex
@@ -111,7 +41,7 @@ type loggyServer struct {
 }
 
 func (l *loggyServer) InsertWaitListUser(ctx context.Context, app *pb.WaitListUser) (*empty.Empty, error) {
-	entry := &WaitlistUser{
+	entry := &service.WaitlistUser{
 		Email: app.Email,
 	}
 	l.db.Where(entry).FirstOrCreate(&entry)
@@ -125,13 +55,13 @@ func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Applic
 	}
 	userID := split[0]
 	appID := split[1]
-	entry := &Application{
+	entry := &service.Application{
 		ID:     appID,
 		UserID: userID,
 		Name:   app.Name,
 		Icon:   app.Icon,
 	}
-	exists := &Application{}
+	exists := &service.Application{}
 	l.db.Where(entry).FirstOrCreate(&exists)
 	return &pb.Application{
 		Id:   exists.ID,
@@ -141,7 +71,7 @@ func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Applic
 }
 
 func (l *loggyServer) ListApplications(ctx context.Context, userid *pb.UserId) (*pb.ApplicationList, error) {
-	var entries []*Application
+	var entries []*service.Application
 	var apps []*pb.Application
 	l.db.Where("user_id = ?", userid.Id).Find(&entries)
 	for _, app := range entries {
@@ -159,11 +89,11 @@ func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) 
 	if err != nil {
 		return nil, err
 	}
-	entry := &Device{
+	entry := &service.Device{
 		ID:      deviceid,
 		Details: device.Details,
 	}
-	exists := &Device{}
+	exists := &service.Device{}
 	l.db.Where(entry).FirstOrCreate(&exists)
 	return &pb.Device{
 		Id:      exists.ID.String(),
@@ -173,10 +103,10 @@ func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) 
 
 func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) (*pb.DeviceList, error) {
 	var devices []*pb.Device
-	var sessions []*Session
+	var sessions []*service.Session
 	l.db.Where("application_foreign_key = ?", appid.Id).Select("distinct(device_foreign_key)").Find(&sessions)
 	for _, session := range sessions {
-		device := &Device{}
+		device := &service.Device{}
 		l.db.Where("id = ?", session.DeviceID).First(&device)
 		devices = append(devices, &pb.Device{
 			Id:      device.ID.String(),
@@ -191,7 +121,7 @@ func (l *loggyServer) InsertSession(ctx context.Context, session *pb.Session) (*
 	if err != nil {
 		return nil, err
 	}
-	exists := &Session{
+	exists := &service.Session{
 		AppID:    session.Appid,
 		DeviceID: deviceid,
 	}
@@ -202,7 +132,7 @@ func (l *loggyServer) InsertSession(ctx context.Context, session *pb.Session) (*
 }
 
 func (l *loggyServer) ListSessions(ctx context.Context, query *pb.SessionQuery) (*pb.SessionList, error) {
-	var entries []*Session
+	var entries []*service.Session
 	var sessions []*pb.Session
 	l.db.Where("application_foreign_key = ?", query.Appid).Where("device_foreign_key = ?", query.Deviceid).Find(&entries)
 	for _, session := range entries {
@@ -216,7 +146,7 @@ func (l *loggyServer) ListSessions(ctx context.Context, query *pb.SessionQuery) 
 }
 
 func (l *loggyServer) ListSessionMessages(ctx context.Context, sessionid *pb.SessionId) (*pb.MessageList, error) {
-	var entries []*Message
+	var entries []*service.Message
 	var messages []*pb.Message
 	l.db.Where("session_id = ?", sessionid.Id).Find(&entries)
 	for _, message := range entries {
@@ -236,11 +166,11 @@ func (l *loggyServer) GetSessionStats(ctx context.Context, sessionid *pb.Session
 	var errorCount int32
 	var warnCount int32
 	var crashCount int32
-	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 0).Count(&debugCount)
-	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 1).Count(&infoCount)
-	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 2).Count(&errorCount)
-	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 3).Count(&warnCount)
-	l.db.Model(&Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 4).Count(&crashCount)
+	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 0).Count(&debugCount)
+	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 1).Count(&infoCount)
+	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 2).Count(&errorCount)
+	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 3).Count(&warnCount)
+	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 4).Count(&crashCount)
 	return &pb.SessionStats{
 		DebugCount: debugCount,
 		InfoCount:  infoCount,
@@ -260,7 +190,7 @@ func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer
 }
 
 func (l *loggyServer) RegisterSend(ctx context.Context, sessionid *pb.SessionId) (*empty.Empty, error) {
-	session := &Session{}
+	session := &service.Session{}
 	if l.db.Where("id = ?", sessionid.Id).First(&session).RecordNotFound() {
 		return nil, errors.New("session not found")
 	}
@@ -321,7 +251,7 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	}
 	var messages []*pb.Message
 	for _, hit := range result.Hits {
-		msg := &Message{}
+		msg := &service.Message{}
 		if l.db.Where("id = ?", hit.ID).First(&msg).RecordNotFound() {
 			return nil, errors.New("msg not found")
 		}
@@ -334,23 +264,26 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	}
 	return &pb.MessageList{Messages: messages}, nil
 }
-
+const (
+	secretKey     = "secret"
+	tokenDuration = 15 * time.Minute
+)
 func main() {
 	prefix := flag.String("prefix", "logs", "Prefix for logs. (logs)")
 	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
 	flag.Parse()
 
-	db, err := gorm.Open("sqlite3", "/db/test.db")
+	db, err := gorm.Open("sqlite3", "db/test.db")
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
 	defer db.Close()
 
 	// Migrate the schema
-	db.AutoMigrate(&Application{})
-	db.AutoMigrate(&Device{})
-	db.AutoMigrate(&Session{})
-	db.AutoMigrate(&Message{})
+	db.AutoMigrate(&service.Application{})
+	db.AutoMigrate(&service.Device{})
+	db.AutoMigrate(&service.Session{})
+	db.AutoMigrate(&service.Message{})
 
 	var indexer bleve.Index
 	if _, err := os.Stat(IndexPath); os.IsNotExist(err) {
@@ -362,7 +295,11 @@ func main() {
 		log.Fatalf("failed to create index: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	interceptor := service.NewAuthInterceptor("Auth")
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptor.Unary()),
+		grpc.StreamInterceptor(interceptor.Stream()),
+		)
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
 		db:            db,
 		indexer:       indexer,
@@ -381,3 +318,4 @@ func main() {
 	log.Println("Listening on tcp://localhost:50111")
 	grpcServer.Serve(l)
 }
+
