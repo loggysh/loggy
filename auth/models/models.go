@@ -6,11 +6,15 @@ import (
 	"github.com/tuxcanfly/loggy/auth/database"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"time"
 )
 
 // User defines the user in db
 type User struct {
 	gorm.Model
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at"`
 	ID		 string `gorm:"type:uuid;primary_key;"`
 	Name     string `json:"name"`
 	Email    string `json:"email" gorm:"unique"`
