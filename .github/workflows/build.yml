@@ -18,9 +18,9 @@ jobs:
 
       - name: OS dependencies and Settings
         run: |
-          snap install protobuf
-          apt install make
-          apt install -y protobuf-compiler
+          sudo snap install protobuf
+          sudo apt-get install make
+          sudo apt-get install -y protobuf-compiler
           cd loggy
           export GO111MODULE=on
           export PATH="$PATH:$(go env GOPATH)/bin"
