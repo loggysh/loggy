@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - dev
-      - abdul/publish-image
+      - abdul/CI-CD
 
 jobs:
   Build:
