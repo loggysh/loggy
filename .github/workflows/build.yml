@@ -1,0 +1,49 @@
+name: build
+on:
+  push:
+    branches:
+      - dev
+      - abdul/publish-image
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ‘1.13.8’
+
+      - name: OS dependencies and Settings
+        run: |
+          snap install protobuf
+          apt install make
+          apt install -y protobuf-compiler
+          cd loggy
+          export GO111MODULE=on
+          export PATH="$PATH:$(go env GOPATH)/bin"
+
+
+
+      - name: Install Go dependencies
+        run: |
+          go version
+          go get -u golang.org/x/lint/golint
+          go get -u google.golang.org/grpc
+          go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+          go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
+          go get github.com/gin-gonic/gin
+          go get github.com/dgrijalva/jwt
+          go get "golang.org/x/crypto/bcrypt"
+
+
+      - name: Dispatch to Loggy-Config
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.ACCESS_TOKEN }}
+          repository: loggysh/loggy-config
+          event-type: push
+          client-payload: '{"submodule": "${{ github.repository }}"}'
+
