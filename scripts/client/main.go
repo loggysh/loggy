@@ -48,12 +48,14 @@ func babble() string {
 }
 
 func main() {
+	os.Setenv("user_id", "ADD USER ID HERE")
+	os.Setenv("authorization", "ADD TOKEN HERE")
 	conn, err := grpc.Dial("localhost:50111", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err)
 	}
 	defer conn.Close()
-	header := metadata.New(map[string]string{"authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6ImFiZHVsQHRlc3QuY29tIiwiZXhwIjoxNjI2MzA1MTQ5LCJpc3MiOiJBdXRoU2VydmljZSJ9.1mEgMKWn9Ew0AWZ7OICs8jSdgbkw8fkN9NxOcL7zrRo", "user_id":  "95f7ef4b6d4d42ba8dd31531069227e8"})
+	header := metadata.New(map[string]string{"authorization": os.Getenv("authorization"), "user_id": os.Getenv("user_id")})
 	ctx := metadata.NewOutgoingContext(context.Background(), header)
 	client := pb.NewLoggyServiceClient(conn)
 	app, err := client.GetOrInsertApplication(ctx, &pb.Application{
