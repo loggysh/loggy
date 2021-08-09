@@ -104,7 +104,7 @@ func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) 
 func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) (*pb.DeviceList, error) {
 	var devices []*pb.Device
 	var sessions []*service.Session
-	l.db.Where("application_foreign_key = ?", appid.Id).Select("distinct(device_foreign_key)").Find(&sessions)
+	l.db.Where("application_id = ?", appid.Id).Select("distinct(device_id)").Find(&sessions)
 	for _, session := range sessions {
 		device := &service.Device{}
 		l.db.Where("id = ?", session.DeviceID).First(&device)
@@ -134,7 +134,7 @@ func (l *loggyServer) InsertSession(ctx context.Context, session *pb.Session) (*
 func (l *loggyServer) ListSessions(ctx context.Context, query *pb.SessionQuery) (*pb.SessionList, error) {
 	var entries []*service.Session
 	var sessions []*pb.Session
-	l.db.Where("application_foreign_key = ?", query.Appid).Where("device_foreign_key = ?", query.Deviceid).Find(&entries)
+	l.db.Where("application_id = ?", query.Appid).Where("device_id = ?", query.Deviceid).Find(&entries)
 	for _, session := range entries {
 		sessions = append(sessions, &pb.Session{
 			Id:       session.ID,
