@@ -24,8 +24,6 @@ func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {
 	defer conn.Close()
 
 	client := pb.NewLoggyServiceClient(conn)
-	// header := metadata.New(map[string]string{"authorization": os.Getenv("authorization"), "user_id":  "95f7ef4b6d4d42ba8dd31531069227e8"})
-	// ctx := metadata.NewOutgoingContext(context.Background(), header)
 
 	stream, err := client.Notify(context.Background(), &empty.Empty{})
 	if err != nil {
