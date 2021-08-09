@@ -5,14 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type AuthInterceptor struct {
@@ -22,8 +23,18 @@ type AuthInterceptor struct {
 func NewAuthInterceptor(name string) *AuthInterceptor {
 	return &AuthInterceptor{name}
 }
+func contains(slice []string, item string) bool {
+	set := make(map[string]struct{}, len(slice))
+	for _, s := range slice {
+		set[s] = struct{}{}
+	}
+
+	_, ok := set[item]
+	return ok
+}
 
 func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
+	s := []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterReceive", "/loggy.LoggyService/Receive"}
 	return func(
 		ctx context.Context,
 		req interface{},
@@ -31,10 +42,11 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		log.Println("--> unary interceptor: ", info.FullMethod)
-
-		err := interceptor.authorize(ctx, info.FullMethod)
-		if err != nil {
-			return nil, err
+		if !contains(s, info.FullMethod) {
+			err := interceptor.authorize(ctx, info.FullMethod)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		return handler(ctx, req)
@@ -42,6 +54,7 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 }
 
 func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
+	s := []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterReceive", "/loggy.LoggyService/Receive", "/loggy.LoggyService/Recv"}
 	return func(
 		srv interface{},
 		stream grpc.ServerStream,
@@ -49,7 +62,7 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 		handler grpc.StreamHandler,
 	) error {
 		log.Println("--> stream interceptor: ", info.FullMethod)
-		if info.FullMethod != "/loggy.LoggyService/Notify" {
+		if !contains(s, info.FullMethod) {
 			err := interceptor.authorize(stream.Context(), info.FullMethod)
 			if err != nil {
 				return err
@@ -97,18 +110,17 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 
 	sb := string(body)
 	fmt.Println(sb)
-	if sb != `{"message":"token valid"}`{
+	if sb != `{"message":"token valid"}` {
 		return status.Error(codes.PermissionDenied, "no permission to access this RPC")
 	}
 	return nil
 }
 
-
 func BuildUrl() (s string) {
 	if os.Getenv("DOMAIN") == "localhost" {
 		authUrl := "http://localhost:8080/api/public/verify"
 		return authUrl
-	} else if len(os.Getenv("DOMAIN")) ==0{
+	} else if len(os.Getenv("DOMAIN")) == 0 {
 		authUrl := "http://localhost:8080/api/public/verify"
 		return authUrl
 	} else {
