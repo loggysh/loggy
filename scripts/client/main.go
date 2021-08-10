@@ -49,10 +49,16 @@ func babble() string {
 }
 
 func main() {
-	userid := flag.String("userid", "", "User id")
-	authorization := flag.String("authorization", "", "Authorization")
+	userid := flag.String("userid", "", "required User id")
+	authorization := flag.String("authorization", "", "required Authorization")
 	url := flag.String("url", "localhost:50111", "Url")
 	flag.Parse()
+
+	if *authorization == "" || *userid == "" {
+		flag.PrintDefaults()
+		return
+	}
+
 	conn, err := grpc.Dial(*url, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err)
