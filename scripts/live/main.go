@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"io"
 
 	"google.golang.org/grpc/metadata"
 	"golang.org/x/net/context"
@@ -32,14 +33,29 @@ func main() {
 	header := metadata.New(map[string]string{"authorization": *authorization, "user_id": *userid})
 	ctx := metadata.NewOutgoingContext(context.Background(), header)
 	client := pb.NewLoggyServiceClient(conn)
-	messageList, err := client.ListSessionMessages(ctx, &pb.SessionId{
+	receiverId, err := client.RegisterReceive(ctx, &pb.SessionId{
 		Id: int32(*sessionid),
 	})
+
+	receive, err := client.Receive(ctx, receiverId)
 	if err != nil {
 		log.Fatalf("failed to search: %s", err)
 	}
 
-	for _, i := range messageList.Messages {
-		fmt.Println(i)
+	for {
+		in, err := receive.Recv()
+		if err == io.EOF {
+			fmt.Printf("EOF stream")
+			return
+		}
+		if err != nil {
+			log.Fatalf("stream failed: %s", err)
+		}
+		s := fmt.Sprintf("session id: %s", in.Sessionid)
+		m := fmt.Sprintf("msg: %s", in.Msg)
+
+		fmt.Println(s)
+		fmt.Println(m)
 	}
+
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"google.golang.org/grpc/metadata"
 	"io/ioutil"
@@ -48,18 +49,26 @@ func babble() string {
 }
 
 func main() {
-	os.Setenv("user_id", "ADD USER ID HERE")
-	os.Setenv("authorization", "ADD TOKEN HERE")
-	conn, err := grpc.Dial("localhost:50111", grpc.WithInsecure())
+	userid := flag.String("userid", "", "required User id")
+	authorization := flag.String("authorization", "", "required Authorization")
+	url := flag.String("url", "localhost:50111", "Url")
+	flag.Parse()
+
+	if *authorization == "" || *userid == "" {
+		flag.PrintDefaults()
+		return
+	}
+
+	conn, err := grpc.Dial(*url, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err)
 	}
 	defer conn.Close()
-	header := metadata.New(map[string]string{"authorization": os.Getenv("authorization"), "user_id": os.Getenv("user_id")})
+	header := metadata.New(map[string]string{"authorization": *authorization, "user_id": *userid})
 	ctx := metadata.NewOutgoingContext(context.Background(), header)
 	client := pb.NewLoggyServiceClient(conn)
 	app, err := client.GetOrInsertApplication(ctx, &pb.Application{
-		Id:   "d4d7f2b0-7833-4d91-bfa2-4cdfaacb68df/sh.loggy",
+		Id:   *userid + "/sh.loggy",
 		Name: "Loggy",
 		Icon: "loggy.svg",
 	})
