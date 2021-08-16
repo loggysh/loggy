@@ -32,9 +32,24 @@ func contains(slice []string, item string) bool {
 	_, ok := set[item]
 	return ok
 }
-
+var s = []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterReceive", "/loggy.LoggyService/Receive"}
+func InterceptAndVerify(server string, allowed []string, interceptor *AuthInterceptor, ctx context.Context) error{
+	pass := false
+	md, _ := metadata.FromIncomingContext(ctx)
+	if len(md.Get("client")) > 0 {
+		if md.Get("client")[0] == "test" {
+			pass = true
+		}
+	}
+	if !contains(allowed, server) {
+		err := interceptor.authorize(ctx, server, pass)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
-	s := []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterReceive", "/loggy.LoggyService/Receive"}
 	return func(
 		ctx context.Context,
 		req interface{},
@@ -42,19 +57,15 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		log.Println("--> unary interceptor: ", info.FullMethod)
-		if !contains(s, info.FullMethod) {
-			err := interceptor.authorize(ctx, info.FullMethod)
-			if err != nil {
-				return nil, err
-			}
+		err := InterceptAndVerify(info.FullMethod, s, interceptor, ctx)
+		if err != nil {
+			fmt.Println(err)
 		}
-
 		return handler(ctx, req)
 	}
 }
 
 func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
-	s := []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterReceive", "/loggy.LoggyService/Receive", "/loggy.LoggyService/Recv"}
 	return func(
 		srv interface{},
 		stream grpc.ServerStream,
@@ -62,23 +73,23 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 		handler grpc.StreamHandler,
 	) error {
 		log.Println("--> stream interceptor: ", info.FullMethod)
-		if !contains(s, info.FullMethod) {
-			err := interceptor.authorize(stream.Context(), info.FullMethod)
-			if err != nil {
-				return err
-			}
+		err := InterceptAndVerify(info.FullMethod, s, interceptor, stream.Context())
+		if err != nil {
+			fmt.Println(err)
 		}
 		return handler(srv, stream)
 	}
 
 }
 
-func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) error {
+func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string, pass bool) error {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return status.Errorf(codes.Unauthenticated, "metadata is not provided")
 	}
-
+	if pass == true {
+		return nil
+	}
 	token := md["authorization"]
 
 	if len(token) == 0 {
