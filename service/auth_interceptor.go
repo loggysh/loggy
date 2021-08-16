@@ -23,6 +23,7 @@ type AuthInterceptor struct {
 func NewAuthInterceptor(name string) *AuthInterceptor {
 	return &AuthInterceptor{name}
 }
+
 func contains(slice []string, item string) bool {
 	set := make(map[string]struct{}, len(slice))
 	for _, s := range slice {
@@ -32,23 +33,21 @@ func contains(slice []string, item string) bool {
 	_, ok := set[item]
 	return ok
 }
+
 var s = []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterReceive", "/loggy.LoggyService/Receive"}
+
+//android methods - GetOrInsertApplication, GetOrInsertDevice, InsertSession, RegisterSend
+
 func InterceptAndVerify(server string, allowed []string, interceptor *AuthInterceptor, ctx context.Context) error{
-	pass := false
-	md, _ := metadata.FromIncomingContext(ctx)
-	if len(md.Get("client")) > 0 {
-		if md.Get("client")[0] == "test" {
-			pass = true
-		}
-	}
 	if !contains(allowed, server) {
-		err := interceptor.authorize(ctx, server, pass)
+		err := interceptor.authorize(ctx, server)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
+
 func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -82,20 +81,32 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 
 }
 
-func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string, pass bool) error {
+func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) error {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return status.Errorf(codes.Unauthenticated, "metadata is not provided")
 	}
-	if pass == true {
-		return nil
+
+	client := md["client"]
+
+	if (len(client) == 0) {
+		return status.Errorf(codes.Unauthenticated, "client in metadata is not provided")
 	}
+
 	token := md["authorization"]
+	userID := md["user_id"]
+
+	if (client[0] == "web") {
+		//client is web
+		//authorization token and user id
+	} else if (client[0] == "android") {
+		//client is android
+		//user id or api key
+	}
 
 	if len(token) == 0 {
 		return status.Errorf(codes.Unauthenticated, "authorization token is not provided")
 	}
-	userID := md["user_id"]
 	if len(userID) == 0 {
 		return status.Errorf(codes.Unauthenticated, "user id is not provided")
 	}
