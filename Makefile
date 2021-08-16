@@ -3,7 +3,7 @@ all:
 	mv github.com/tuxcanfly/loggy/loggy/loggy_grpc.pb.go loggy/
 	mv github.com/tuxcanfly/loggy/loggy/loggy.pb.go loggy/
 	go build -o loggy.exe ./cmd/loggy
-	go build -o user.exe auth/main.go
+	go build -o user.exe ./cmd/user
 	rm -rf github.com
 
 clean:
