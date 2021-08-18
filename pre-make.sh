@@ -6,7 +6,8 @@ UNAME=$(uname)
 echo $UNAME
 if [ "$UNAME" == "Linux" ] ; then
 	sudo apt-get install make &&
-	sudo apt-get install -y protobuf-compiler
+	sudo apt-get install -y protobuf-compiler &&
+	sudo apt  install golang-goprotobuf-dev
 elif [ "$UNAME" == "Darwin" ] ; then
 	brew install make
 	brew install protobuf
