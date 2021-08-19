@@ -5,6 +5,7 @@ import (
 	"time"
 
 	uuid "github.com/satori/go.uuid"
+	"github.com/tuxcanfly/loggy/service"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -14,16 +15,19 @@ type User struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
-	ID        string     `gorm:"type:uuid;primary_key;"`
-	Name      string     `json:"name"`
-	Email     string     `json:"email" gorm:"unique"`
-	Password  string     `json:"password"`
+	ID		 string `gorm:"type:uuid;primary_key;"`
+	Name     string `json:"name"`
+	Email    string `json:"email" gorm:"unique"`
+	Password string `json:"password"`
+	ApiKey string `json:"api_key"`
 }
 
 func (user *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u := uuid.NewV4()
 	uString := hex.EncodeToString(u.Bytes())
+	apikey,_ := service.GenerateKey(uString)
 	user.ID = uString
+	user.ApiKey = apikey
 	return
 }
 
