@@ -49,25 +49,49 @@ func (l *loggyServer) InsertWaitListUser(ctx context.Context, app *pb.WaitListUs
 }
 
 func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.Application, error) {
-	split := strings.SplitN(app.Id, "/", 2)
-	if len(split) != 2 {
-		return &pb.Application{}, errors.New("invalid app id")
+	split := strings.SplitN(app.Id, "/", 3)
+	if len(split) == 2{
+		userID := split[0]
+		appID := split[1]
+		entry := &service.Application{
+			ID:     appID,
+			UserID: userID,
+			Name:   app.Name,
+			Icon:   app.Icon,
+		}
+		exists := &service.Application{}
+		l.db.Where(entry).FirstOrCreate(&exists)
+		return &pb.Application{
+			Id:   exists.ID,
+			Name: exists.Name,
+			Icon: exists.Icon,
+		}, nil
+	} else if len(split) == 3{
+		userID := split[0]
+		appID := split[1]
+		apiKey := split[3]
+		user, err := service.ValidateKey(apiKey)
+		if err != nil{
+			return &pb.Application{}, errors.New("invalid api key")
+		}
+		if user == userID {
+			entry := &service.Application{
+				ID:     appID,
+				UserID: userID,
+				Name:   app.Name,
+				Icon:   app.Icon,
+			}
+			exists := &service.Application{}
+			l.db.Where(entry).FirstOrCreate(&exists)
+			return &pb.Application{
+				Id:   exists.ID,
+				Name: exists.Name,
+				Icon: exists.Icon,
+			}, nil
+		}
+
 	}
-	userID := split[0]
-	appID := split[1]
-	entry := &service.Application{
-		ID:     appID,
-		UserID: userID,
-		Name:   app.Name,
-		Icon:   app.Icon,
-	}
-	exists := &service.Application{}
-	l.db.Where(entry).FirstOrCreate(&exists)
-	return &pb.Application{
-		Id:   exists.ID,
-		Name: exists.Name,
-		Icon: exists.Icon,
-	}, nil
+	return &pb.Application{}, errors.New("invalid app id")
 }
 
 func (l *loggyServer) ListApplications(ctx context.Context, userid *pb.UserId) (*pb.ApplicationList, error) {
