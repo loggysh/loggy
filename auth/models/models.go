@@ -3,7 +3,6 @@ package models
 import (
 	"encoding/hex"
 	uuid "github.com/satori/go.uuid"
-	"github.com/tuxcanfly/loggy/auth/database"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"time"
@@ -26,8 +25,8 @@ func (user *User) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 // CreateUserRecord creates a user record in the database
-func (user *User) CreateUserRecord() error {
-	result := database.GlobalDB.Create(&user)
+func (user *User) CreateUserRecord(db *gorm.DB) error {
+	result := db.Create(&user)
 	if result.Error != nil {
 		return result.Error
 	}
