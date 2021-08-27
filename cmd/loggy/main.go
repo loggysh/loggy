@@ -193,7 +193,7 @@ func (l *loggyServer) RegisterSend(ctx context.Context, sessionid *pb.SessionId)
 	session := &service.Session{}
 
 	err := l.db.Where("id = ?", sessionid.Id).First(&session).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil {
 		return nil, errors.New("session not found")
 	}
 	l.notifications <- &pb.Session{
@@ -255,7 +255,7 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	for _, hit := range result.Hits {
 		msg := &service.Message{}
 		err := l.db.Where("id = ?", hit.ID).First(&msg).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if err != nil {
 			return nil, errors.New("msg not found")
 		}
 		messages = append(messages, &pb.Message{
