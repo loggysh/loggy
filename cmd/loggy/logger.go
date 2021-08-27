@@ -12,7 +12,7 @@ import (
 
 	"github.com/blevesearch/bleve"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/jinzhu/gorm"
+        "gorm.io/gorm"
 	pb "github.com/tuxcanfly/loggy/loggy"
 )
 

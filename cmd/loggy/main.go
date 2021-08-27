@@ -20,8 +20,8 @@ import (
 	"github.com/tuxcanfly/loggy/loggy"
 	pb "github.com/tuxcanfly/loggy/loggy"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/driver/sqlite"
 
 	"github.com/tuxcanfly/loggy/service"
 )
@@ -273,11 +273,10 @@ func main() {
 	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
 	flag.Parse()
 
-	db, err := gorm.Open("sqlite3", "db/test.db")
+	db, err := gorm.Open(sqlite.Open("db/test.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
-	defer db.Close()
 
 	// Migrate the schema
 	db.AutoMigrate(&service.Application{})
