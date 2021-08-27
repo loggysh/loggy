@@ -161,22 +161,22 @@ func (l *loggyServer) ListSessionMessages(ctx context.Context, sessionid *pb.Ses
 }
 
 func (l *loggyServer) GetSessionStats(ctx context.Context, sessionid *pb.SessionId) (*pb.SessionStats, error) {
-	var debugCount int32
-	var infoCount int32
-	var errorCount int32
-	var warnCount int32
-	var crashCount int32
+	var debugCount int64
+	var infoCount int64
+	var errorCount int64
+	var warnCount int64
+	var crashCount int64
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 0).Count(&debugCount)
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 1).Count(&infoCount)
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 2).Count(&errorCount)
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 3).Count(&warnCount)
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 4).Count(&crashCount)
 	return &pb.SessionStats{
-		DebugCount: debugCount,
-		InfoCount:  infoCount,
-		ErrorCount: errorCount,
-		WarnCount:  warnCount,
-		CrashCount: crashCount,
+		DebugCount: int32(debugCount),
+		InfoCount:  int32(infoCount),
+		ErrorCount: int32(errorCount),
+		WarnCount:  int32(warnCount),
+		CrashCount: int32(crashCount),
 	}, nil
 }
 
@@ -191,7 +191,9 @@ func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer
 
 func (l *loggyServer) RegisterSend(ctx context.Context, sessionid *pb.SessionId) (*empty.Empty, error) {
 	session := &service.Session{}
-	if l.db.Where("id = ?", sessionid.Id).First(&session).RecordNotFound() {
+
+	err := l.db.Where("id = ?", sessionid.Id).First(&session).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, errors.New("session not found")
 	}
 	l.notifications <- &pb.Session{
@@ -252,7 +254,8 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	var messages []*pb.Message
 	for _, hit := range result.Hits {
 		msg := &service.Message{}
-		if l.db.Where("id = ?", hit.ID).First(&msg).RecordNotFound() {
+		err := l.db.Where("id = ?", hit.ID).First(&msg).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("msg not found")
 		}
 		messages = append(messages, &pb.Message{
