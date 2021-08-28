@@ -52,10 +52,8 @@ func (kg *KeyGenMock) SecureRandomBytes(length int) ([]byte, error) {
 	return kg.ExpSRBs, kg.ExpSRBsErr
 }
 
-
-func GenerateKey(userid string) (string, error){
+func GenerateKey(userid string) (string, error) {
 	db := &DBMock{}
-
 
 	g, _ := api.NewGuard(
 		db,

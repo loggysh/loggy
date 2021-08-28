@@ -201,7 +201,6 @@ func (l *loggyServer) RegisterSend(ctx context.Context, sessionid *pb.SessionId)
 		Id:       session.ID,
 		Deviceid: session.DeviceID.String(),
 		Appid:    session.AppID,
-
 	}
 	return &empty.Empty{}, nil
 }

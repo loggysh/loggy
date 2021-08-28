@@ -43,5 +43,4 @@ func main() {
 	if err != nil {
 		log.Fatalf("Gin engine run failed %v", err)
 	}
-
 }

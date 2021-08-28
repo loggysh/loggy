@@ -38,7 +38,7 @@ var s = []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterRece
 
 //android methods - GetOrInsertApplication, GetOrInsertDevice, InsertSession, RegisterSend
 
-func InterceptAndVerify(server string, allowed []string, interceptor *AuthInterceptor, ctx context.Context) error{
+func InterceptAndVerify(server string, allowed []string, interceptor *AuthInterceptor, ctx context.Context) error {
 	if !contains(allowed, server) {
 		err := interceptor.authorize(ctx, server)
 		if err != nil {
@@ -134,7 +134,7 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 			return status.Errorf(codes.Unauthenticated, "api key is not provided")
 		}
 		_, err := ValidateKey(clientId[0])
-		if err != nil{
+		if err != nil {
 			return status.Errorf(codes.Unauthenticated, "invalid user")
 		}
 
@@ -155,6 +155,7 @@ func BuildUrl() (s string) {
 		return authUrl
 	}
 }
+
 // userid, application := apikey()
 // with user id from android
 // client id and client secret
