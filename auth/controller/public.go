@@ -1,13 +1,13 @@
 package controller
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tuxcanfly/loggy/auth/jwt"
 	"github.com/tuxcanfly/loggy/auth/models"
 	"gorm.io/gorm"
-	"log"
 )
-
 
 type UserServer struct {
 	DB *gorm.DB
@@ -64,7 +64,7 @@ type LoginPayload struct {
 
 // LoginResponse token response
 type LoginResponse struct {
-	Token string `json:"token"`
+	Token  string `json:"token"`
 	UserID string `json:"user_id"`
 }
 
@@ -119,13 +119,11 @@ func (u *UserServer) Login(c *gin.Context) {
 	}
 
 	tokenResponse := LoginResponse{
-		Token: signedToken,
+		Token:  signedToken,
 		UserID: user.ID,
 	}
 
 	c.JSON(200, tokenResponse)
-
-	return
 }
 
 func (u *UserServer) Verify(c *gin.Context) {

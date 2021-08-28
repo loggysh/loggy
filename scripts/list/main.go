@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"google.golang.org/grpc/metadata"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
 	pb "github.com/tuxcanfly/loggy/loggy"
 )

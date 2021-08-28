@@ -2,28 +2,31 @@ package models
 
 import (
 	"encoding/hex"
+	"time"
+
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"time"
 )
 
 // User defines the user in db
 type User struct {
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
-	ID		 string `gorm:"type:uuid;primary_key;"`
-	Name     string `json:"name"`
-	Email    string `json:"email" gorm:"unique"`
-	Password string `json:"password"`
+	ID        string     `gorm:"type:uuid;primary_key;"`
+	Name      string     `json:"name"`
+	Email     string     `json:"email" gorm:"unique"`
+	Password  string     `json:"password"`
 }
+
 func (user *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u := uuid.NewV4()
 	uString := hex.EncodeToString(u.Bytes())
 	user.ID = uString
 	return
 }
+
 // CreateUserRecord creates a user record in the database
 func (user *User) CreateUserRecord(db *gorm.DB) error {
 	result := db.Create(&user)
