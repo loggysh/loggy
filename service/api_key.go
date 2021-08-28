@@ -56,11 +56,9 @@ func (kg *KeyGenMock) SecureRandomBytes(length int) ([]byte, error) {
 func GenerateKey(userid string) (string, error){
 	db := &DBMock{}
 
-	keyGen := &KeyGenMock{ExpSRBs: []byte("loggy-key")}
 
 	g, _ := api.NewGuard(
 		db,
-		api.WithKeyGenerator(keyGen), // This is optional
 	)
 	// Generate API key
 	APIKey, _ := g.NewAPIKey(userid)
@@ -73,10 +71,8 @@ func ValidateKey(key string) (string, error) {
 
 	db := &DBMock{}
 
-	keyGen := &KeyGenMock{ExpSRBs: []byte("loggy-key")}
 	g, _ := api.NewGuard(
 		db,
-		api.WithKeyGenerator(keyGen), // This is optional
 	)
 	// Validate API Key
 	keyString := []byte(key)
