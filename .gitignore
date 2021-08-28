@@ -6,3 +6,6 @@ logs/
 loggy.index
 .kratos.yml
 .identity.schema.json
+.idea/
+test.sh
+main

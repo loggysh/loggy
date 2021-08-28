@@ -121,6 +121,8 @@ github.com/jinzhu/now v1.1.1/go.mod h1:d3SSVoowX0Lcu0IBviAWJpolVfI5UJVZZ7cO71lE/
 github.com/jinzhu/now v1.1.2 h1:eVKgfIdy9b6zbWBMgFpfDPoAMifwSZagU9HmEU6zgiI=
 github.com/jinzhu/now v1.1.2/go.mod h1:d3SSVoowX0Lcu0IBviAWJpolVfI5UJVZZ7cO71lE/z8=
 github.com/jmhodges/levigo v1.0.0/go.mod h1:Q6Qx+uH3RAqyK4rFQroq9RL7mdkABMcfhEI+nNuzMJQ=
+github.com/jpillora/backoff v1.0.0 h1:uvFg412JmmHBHw7iwprIxkPMI+sGQ4kzOWsMeHnm2EA=
+github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=
 github.com/json-iterator/go v1.1.9 h1:9yzud/Ht36ygwatGx56VwCZtlI/2AD15T1X2sjSuGns=
 github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/json-iterator/go v1.1.11 h1:uVUAXhF2To8cbw/3xN3pxj6kk7TYKs98NIrTqPlMWAQ=
@@ -194,6 +196,12 @@ github.com/tebeka/snowball v0.4.2/go.mod h1:4IfL14h1lvwZcp1sfXuuc7/7yCsvVffTWxWx
 github.com/tecbot/gorocksdb v0.0.0-20191217155057-f0fad39f321c/go.mod h1:ahpPrc7HpcfEWDQRZEmnXMzHY03mLDYMCxeDzy46i+8=
 github.com/tinylib/msgp v1.1.0 h1:9fQd+ICuRIu/ue4vxJZu6/LzxN0HwMds2nq/0cFvxHU=
 github.com/tinylib/msgp v1.1.0/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
+github.com/tomogoma/generator v0.0.0-20171014125632-4398aab4dd41 h1:pW7Lt2uz1Sm8Gc+MylBsGP+f/IZ4GBYTjXkf0Ggq49E=
+github.com/tomogoma/generator v0.0.0-20171014125632-4398aab4dd41/go.mod h1:50cb5DQi9fkTe9Xs+TDCDFg1XNXq8mOtsnjyZZAsAbE=
+github.com/tomogoma/go-api-guard v0.0.0-20180312041446-a2bad766ec64 h1:w/z2FNQjTca4pxpqA5VIY/OlnwFZFdTCiYdmmR44DQQ=
+github.com/tomogoma/go-api-guard v0.0.0-20180312041446-a2bad766ec64/go.mod h1:9UwPTDHS3hthZm7PheRkXZAwvPaH6NHNirUULv4Z/PQ=
+github.com/tomogoma/go-typed-errors v0.0.0-20181222204503-0532faf740be h1:pDoOVAwk95NWcLuCMpZzGEm52tWV7vc1zXAhlatt/ak=
+github.com/tomogoma/go-typed-errors v0.0.0-20181222204503-0532faf740be/go.mod h1:07QgUvDa8jmLEpC4RxEJ5dKKOHglIRCzrHhdAvhSWfY=
 github.com/ugorji/go v1.1.7 h1:/68gy2h+1mWMrwZFeD1kQialdSzAb432dtpeJ42ovdo=
 github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVMw=
 github.com/ugorji/go v1.2.6 h1:tGiWC9HENWE2tqYycIqFTNorMmFRVhNwCpDOpWqnk8E=
