@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"io"
 	"log"
 	"net"
@@ -14,20 +12,22 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/blevesearch/bleve"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	uuid "github.com/satori/go.uuid"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+
 	"github.com/tuxcanfly/loggy/loggy"
 	pb "github.com/tuxcanfly/loggy/loggy"
-
-	"gorm.io/gorm"
-	"gorm.io/driver/sqlite"
-
 	"github.com/tuxcanfly/loggy/service"
 )
 
 var IndexPath = "loggy.index"
-
 
 type loggyServer struct {
 	lock          sync.RWMutex
@@ -267,10 +267,12 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	}
 	return &pb.MessageList{Messages: messages}, nil
 }
+
 const (
 	secretKey     = "secret"
 	tokenDuration = 15 * time.Minute
 )
+
 func main() {
 	prefix := flag.String("prefix", "logs", "Prefix for logs. (logs)")
 	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
@@ -289,9 +291,9 @@ func main() {
 
 	var indexer bleve.Index
 	if _, err := os.Stat(IndexPath); os.IsNotExist(err) {
-		indexer, err = bleve.New(IndexPath, bleve.NewIndexMapping())
+		indexer, _ = bleve.New(IndexPath, bleve.NewIndexMapping())
 	} else {
-		indexer, err = bleve.Open(IndexPath)
+		indexer, _ = bleve.Open(IndexPath)
 	}
 	if err != nil {
 		log.Fatalf("failed to create index: %v", err)
@@ -301,7 +303,7 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(interceptor.Unary()),
 		grpc.StreamInterceptor(interceptor.Stream()),
-		)
+	)
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
 		db:            db,
 		indexer:       indexer,
@@ -320,4 +322,3 @@ func main() {
 	log.Println("Listening on tcp://localhost:50111")
 	grpcServer.Serve(l)
 }
-

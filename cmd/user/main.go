@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/tuxcanfly/loggy/auth/controller"
-	"github.com/tuxcanfly/loggy/auth/models"
 	"log"
 
+	"github.com/tuxcanfly/loggy/auth/controller"
+	"github.com/tuxcanfly/loggy/auth/models"
+
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -19,10 +20,10 @@ func main() {
 
 	err = db.AutoMigrate(&models.User{})
 	if err != nil {
-		log.Fatalf("user database migration failed", err)
+		log.Fatalf("user database migration failed %v", err)
 	}
 
-	userServer := controller.UserServer {
+	userServer := controller.UserServer{
 		DB: db,
 	}
 
@@ -40,7 +41,7 @@ func main() {
 
 	err = router.Run(":8080")
 	if err != nil {
-		log.Fatalf("Gin engine run failed", err)
+		log.Fatalf("Gin engine run failed %v", err)
 	}
 
 }
