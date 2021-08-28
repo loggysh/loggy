@@ -6,5 +6,3 @@ logs/
 loggy.index
 .kratos.yml
 .identity.schema.json
-go.sum
-go.mod
