@@ -58,7 +58,7 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		log.Println("--> unary interceptor: ", info.FullMethod)
 		err := InterceptAndVerify(info.FullMethod, s, interceptor, ctx)
 		if err != nil {
-			fmt.Println(err)
+			return ctx, err
 		}
 		return handler(ctx, req)
 	}
@@ -89,11 +89,11 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 
 	client := md["client"]
 
-	if len(client) == 0 {
-		return status.Errorf(codes.Unauthenticated, "client in metadata is not provided")
-	}
+	//if len(client) == 0 {
+	//	return status.Errorf(codes.Unauthenticated, "client in metadata is not provided")
+	//}
 
-	if client[0] == "web" {
+	if len(client) == 0 {
 		token := md["authorization"]
 		userID := md["user_id"]
 		if len(token) == 0 {
@@ -129,14 +129,15 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		}
 
 	} else if client[0] == "android" {
-		apiKey := md["api_key"]
-		userID := md["user_id"]
-		if len(apiKey) == 0 {
+		clientId := md["client_id"]
+		if len(clientId) == 0 {
 			return status.Errorf(codes.Unauthenticated, "api key is not provided")
 		}
-		if len(userID) == 0 {
-			return status.Errorf(codes.Unauthenticated, "user id is not provided")
+		_, err := ValidateKey(clientId[0])
+		if err != nil{
+			return status.Errorf(codes.Unauthenticated, "invalid user")
 		}
+
 	}
 
 	return nil
@@ -154,3 +155,8 @@ func BuildUrl() (s string) {
 		return authUrl
 	}
 }
+// userid, application := apikey()
+// with user id from android
+// client id and client secret
+//
+// each user have apikey associated with application id?
