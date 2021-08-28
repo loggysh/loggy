@@ -19,15 +19,15 @@ type User struct {
 	Name     string `json:"name"`
 	Email    string `json:"email" gorm:"unique"`
 	Password string `json:"password"`
-	ApiKey string `json:"api_key"`
+	ClientId string `json:"client_id"`
 }
 
 func (user *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u := uuid.NewV4()
 	uString := hex.EncodeToString(u.Bytes())
-	apikey,_ := service.GenerateKey(uString)
 	user.ID = uString
-	user.ApiKey = apikey
+	clientID,_ := service.GenerateKey(user.ID)
+	user.ClientId = clientID
 	return
 }
 
