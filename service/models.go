@@ -17,7 +17,7 @@ type Base struct {
 type Application struct {
 	Base
 	ID     string
-	UserID string `gorm:"type:uuid;column:user_id;not null;"`
+	UserID string `gorm:"type:uuid;column:user_id;not null;default:empty;"`
 	Name   string
 	Icon   string
 }
@@ -31,8 +31,8 @@ type Device struct {
 type Session struct {
 	Base
 	ID       int32
-	DeviceID uuid.UUID `gorm:"type:uuid;column:device_id;not null;"`
-	AppID    string    `gorm:"type:string;column:application_id;not null;"`
+	DeviceID uuid.UUID `gorm:"type:uuid;column:device_id;not null;default:empty;"`
+	AppID    string    `gorm:"type:string;column:application_id;not null;default:empty;"`
 }
 
 type WaitlistUser struct {
