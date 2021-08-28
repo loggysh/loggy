@@ -1,49 +1,47 @@
 package main
 
 import (
-	"github.com/tuxcanfly/loggy/auth/controller"
-	"github.com/tuxcanfly/loggy/auth/database"
-	"github.com/tuxcanfly/loggy/auth/models"
 	"log"
 
+	"github.com/tuxcanfly/loggy/auth/controller"
+	"github.com/tuxcanfly/loggy/auth/models"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-func setupRouter() *gin.Engine {
-	r := gin.Default()
-
-	r.GET("/ping", func(c *gin.Context) {
-		c.String(200, "pong")
-	})
-
-	//here
-	api := r.Group("/api")
-	{
-		public := api.Group("/public")
-		{
-			public.POST("/login", controller.Login)
-			public.POST("/signup", controller.Signup)
-			public.POST("/verify", controller.Verify)
-		}
-	}
-
-	return r
-}
-
 func main() {
-	err := database.InitDatabase()
+	//create database
+	db, err := gorm.Open(sqlite.Open("db/test.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatalln("could not create database", err)
 	}
 
-	err = database.GlobalDB.AutoMigrate(&models.User{})
+	err = db.AutoMigrate(&models.User{})
 	if err != nil {
-		log.Fatalf("%v\n", err)
+		log.Fatalf("user database migration failed %v", err)
 	}
 
-	r := setupRouter()
-	err = r.Run(":8080")
-	if err != nil {
-		log.Fatalf("%v\n", err)
+	userServer := controller.UserServer{
+		DB: db,
 	}
+
+	router := gin.Default()
+
+	router.GET("/ping", func(c *gin.Context) {
+		c.String(200, "pong")
+	})
+
+	api := router.Group("/api")
+	public := api.Group("/public")
+	public.POST("/login", userServer.Login)
+	public.POST("/signup", userServer.Signup)
+	public.POST("/verify", userServer.Verify)
+
+	err = router.Run(":8080")
+	if err != nil {
+		log.Fatalf("Gin engine run failed %v", err)
+	}
+
 }

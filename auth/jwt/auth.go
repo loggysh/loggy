@@ -56,7 +56,7 @@ func (j *Wrapper) ValidateToken(signedToken string) (claims *Claim, err error) {
 
 	claims, ok := token.Claims.(*Claim)
 	if !ok {
-		err = errors.New("Couldn't parse claims ")
+		err = errors.New("couldn't parse claims")
 		return
 	}
 

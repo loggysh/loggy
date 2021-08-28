@@ -1,16 +1,20 @@
 package controller
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
-	"github.com/tuxcanfly/loggy/auth/database"
 	"github.com/tuxcanfly/loggy/auth/jwt"
 	"github.com/tuxcanfly/loggy/auth/models"
 	"gorm.io/gorm"
-	"log"
 )
 
+type UserServer struct {
+	DB *gorm.DB
+}
+
 // Signup creates a user in db
-func Signup(c *gin.Context) {
+func (u *UserServer) Signup(c *gin.Context) {
 	var user models.User
 
 	err := c.ShouldBindJSON(&user)
@@ -37,7 +41,7 @@ func Signup(c *gin.Context) {
 		return
 	}
 
-	err = user.CreateUserRecord()
+	err = user.CreateUserRecord(u.DB)
 	if err != nil {
 		log.Println(err)
 
@@ -60,12 +64,12 @@ type LoginPayload struct {
 
 // LoginResponse token response
 type LoginResponse struct {
-	Token string `json:"token"`
+	Token  string `json:"token"`
 	UserID string `json:"user_id"`
 }
 
 // Login logs users in
-func Login(c *gin.Context) {
+func (u *UserServer) Login(c *gin.Context) {
 	var payload LoginPayload
 	var user models.User
 
@@ -78,7 +82,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	result := database.GlobalDB.Where("email = ?", payload.Email).First(&user)
+	result := u.DB.Where("email = ?", payload.Email).First(&user)
 
 	if result.Error == gorm.ErrRecordNotFound {
 		c.JSON(401, gin.H{
@@ -115,15 +119,14 @@ func Login(c *gin.Context) {
 	}
 
 	tokenResponse := LoginResponse{
-		Token: signedToken,
+		Token:  signedToken,
 		UserID: user.ID,
 	}
 
 	c.JSON(200, tokenResponse)
-
-	return
 }
-func Verify(c *gin.Context) {
+
+func (u *UserServer) Verify(c *gin.Context) {
 	var payload LoginResponse
 	err := c.ShouldBindJSON(&payload)
 	if err != nil {

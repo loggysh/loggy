@@ -12,8 +12,8 @@ import (
 
 	"github.com/blevesearch/bleve"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/jinzhu/gorm"
 	pb "github.com/tuxcanfly/loggy/loggy"
+	"gorm.io/gorm"
 )
 
 func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {

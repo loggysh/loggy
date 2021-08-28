@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"io"
 	"log"
 	"net"
@@ -14,20 +12,22 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/blevesearch/bleve"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	uuid "github.com/satori/go.uuid"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+
 	"github.com/tuxcanfly/loggy/loggy"
 	pb "github.com/tuxcanfly/loggy/loggy"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
-
 	"github.com/tuxcanfly/loggy/service"
 )
 
 var IndexPath = "loggy.index"
-
 
 type loggyServer struct {
 	lock          sync.RWMutex
@@ -161,22 +161,22 @@ func (l *loggyServer) ListSessionMessages(ctx context.Context, sessionid *pb.Ses
 }
 
 func (l *loggyServer) GetSessionStats(ctx context.Context, sessionid *pb.SessionId) (*pb.SessionStats, error) {
-	var debugCount int32
-	var infoCount int32
-	var errorCount int32
-	var warnCount int32
-	var crashCount int32
+	var debugCount int64
+	var infoCount int64
+	var errorCount int64
+	var warnCount int64
+	var crashCount int64
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 0).Count(&debugCount)
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 1).Count(&infoCount)
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 2).Count(&errorCount)
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 3).Count(&warnCount)
 	l.db.Model(&service.Message{}).Where("session_id = ?", sessionid.Id).Where("level = ?", 4).Count(&crashCount)
 	return &pb.SessionStats{
-		DebugCount: debugCount,
-		InfoCount:  infoCount,
-		ErrorCount: errorCount,
-		WarnCount:  warnCount,
-		CrashCount: crashCount,
+		DebugCount: int32(debugCount),
+		InfoCount:  int32(infoCount),
+		ErrorCount: int32(errorCount),
+		WarnCount:  int32(warnCount),
+		CrashCount: int32(crashCount),
 	}, nil
 }
 
@@ -191,7 +191,9 @@ func (l *loggyServer) Notify(e *empty.Empty, stream pb.LoggyService_NotifyServer
 
 func (l *loggyServer) RegisterSend(ctx context.Context, sessionid *pb.SessionId) (*empty.Empty, error) {
 	session := &service.Session{}
-	if l.db.Where("id = ?", sessionid.Id).First(&session).RecordNotFound() {
+
+	err := l.db.Where("id = ?", sessionid.Id).First(&session).Error
+	if err != nil {
 		return nil, errors.New("session not found")
 	}
 	l.notifications <- &pb.Session{
@@ -252,7 +254,8 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	var messages []*pb.Message
 	for _, hit := range result.Hits {
 		msg := &service.Message{}
-		if l.db.Where("id = ?", hit.ID).First(&msg).RecordNotFound() {
+		err := l.db.Where("id = ?", hit.ID).First(&msg).Error
+		if err != nil {
 			return nil, errors.New("msg not found")
 		}
 		messages = append(messages, &pb.Message{
@@ -264,20 +267,21 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	}
 	return &pb.MessageList{Messages: messages}, nil
 }
+
 const (
 	secretKey     = "secret"
 	tokenDuration = 15 * time.Minute
 )
+
 func main() {
 	prefix := flag.String("prefix", "logs", "Prefix for logs. (logs)")
 	server := flag.String("server", "localhost", "Server to connect to. (localhost)")
 	flag.Parse()
 
-	db, err := gorm.Open("sqlite3", "db/test.db")
+	db, err := gorm.Open(sqlite.Open("db/test.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
-	defer db.Close()
 
 	// Migrate the schema
 	db.AutoMigrate(&service.Application{})
@@ -287,9 +291,9 @@ func main() {
 
 	var indexer bleve.Index
 	if _, err := os.Stat(IndexPath); os.IsNotExist(err) {
-		indexer, err = bleve.New(IndexPath, bleve.NewIndexMapping())
+		indexer, _ = bleve.New(IndexPath, bleve.NewIndexMapping())
 	} else {
-		indexer, err = bleve.Open(IndexPath)
+		indexer, _ = bleve.Open(IndexPath)
 	}
 	if err != nil {
 		log.Fatalf("failed to create index: %v", err)
@@ -299,7 +303,7 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(interceptor.Unary()),
 		grpc.StreamInterceptor(interceptor.Stream()),
-		)
+	)
 	pb.RegisterLoggyServiceServer(grpcServer, &loggyServer{
 		db:            db,
 		indexer:       indexer,
@@ -318,4 +322,3 @@ func main() {
 	log.Println("Listening on tcp://localhost:50111")
 	grpcServer.Serve(l)
 }
-

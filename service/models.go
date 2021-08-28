@@ -2,10 +2,10 @@ package service
 
 import (
 	"fmt"
-	uuid "github.com/satori/go.uuid"
 	"time"
-)
 
+	uuid "github.com/satori/go.uuid"
+)
 
 // Base contains common columns for all tables.
 type Base struct {
@@ -77,4 +77,3 @@ func (m *Message) String() string {
 	}
 	return fmt.Sprintf("%v :: %d :: <%s> :: %s", m.Timestamp, m.SessionID, level, m.Msg)
 }
-
