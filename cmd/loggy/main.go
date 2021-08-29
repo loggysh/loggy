@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"io"
 	"log"
 	"net"
 	"os"
-	"strings"
 	"sync"
 	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/blevesearch/bleve"
 	empty "github.com/golang/protobuf/ptypes/empty"
@@ -49,15 +49,13 @@ func (l *loggyServer) InsertWaitListUser(ctx context.Context, app *pb.WaitListUs
 }
 
 func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.Application, error) {
-	split := strings.SplitN(app.Id, "/", 2)
-	if len(split) != 2 {
-		return &pb.Application{}, errors.New("invalid app id")
-	}
-	userID := split[0]
-	appID := split[1]
+	md, _ := metadata.FromIncomingContext(ctx)
+	user := md["client_id"][0]
+	userId, _ := service.ValidateKey(user)
+	fmt.Println(userId)
 	entry := &service.Application{
-		ID:     appID,
-		UserID: userID,
+		ID:     app.Id,
+		UserID: userId,
 		Name:   app.Name,
 		Icon:   app.Icon,
 	}
