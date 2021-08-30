@@ -89,11 +89,11 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 
 	client := md["client"]
 
-	//if len(client) == 0 {
-	//	return status.Errorf(codes.Unauthenticated, "client in metadata is not provided")
-	//}
-
 	if len(client) == 0 {
+		log.Println("client in metadata is not provided. proceeding with default")
+	}
+
+	if len(client) == 0 || client[0] == "web" {
 		token := md["authorization"]
 		userID := md["user_id"]
 		if len(token) == 0 {
@@ -104,8 +104,8 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		}
 		//Encode the data
 		postBody, _ := json.Marshal(map[string]string{
-			"Token":  token[0],
-			"UserID": userID[0],
+			"token":   token[0],
+			"user_id": userID[0],
 		})
 		responseBody := bytes.NewBuffer(postBody)
 		//Leverage Go's HTTP Post function to make request
