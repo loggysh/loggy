@@ -9,6 +9,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const authSecretKey = "c8b7b19b-19a0-4201-bc42-dfe6111d8819"
+const authService = "AuthService"
+const authExpirationInHours = 24
+
 type UserServer struct {
 	DB *gorm.DB
 }
@@ -103,9 +107,9 @@ func (u *UserServer) Login(c *gin.Context) {
 	}
 
 	jwtWrapper := jwt.Wrapper{
-		SecretKey:       "verysecretkey",
-		Issuer:          "AuthService",
-		ExpirationHours: 24,
+		SecretKey:       authSecretKey,
+		Issuer:          authService,
+		ExpirationHours: authExpirationInHours,
 	}
 
 	signedToken, err := jwtWrapper.GenerateToken(user.Email)
@@ -139,11 +143,13 @@ func (u *UserServer) Verify(c *gin.Context) {
 
 		return
 	}
+
 	jwtWrapper := jwt.Wrapper{
-		SecretKey:       "verysecretkey",
-		Issuer:          "AuthService",
-		ExpirationHours: 24,
+		SecretKey:       authSecretKey,
+		Issuer:          authService,
+		ExpirationHours: authExpirationInHours,
 	}
+
 	_, err = jwtWrapper.ValidateToken(payload.Token)
 	if err != nil {
 		log.Println(err)
