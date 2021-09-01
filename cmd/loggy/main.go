@@ -5,15 +5,16 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"io"
 	"log"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/blevesearch/bleve"
 	empty "github.com/golang/protobuf/ptypes/empty"
@@ -40,6 +41,17 @@ type loggyServer struct {
 	loggy.UnimplementedLoggyServiceServer
 }
 
+func getUserIdFromMetaData(ctx context.Context) (string, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	log.Println(md)
+	if len(md["user_id"]) == 0 {
+		return "", fmt.Errorf("no user id in metadata")
+	}
+	userID := md["user_id"][0]
+	fmt.Println(userID)
+	return userID, nil
+}
+
 func (l *loggyServer) InsertWaitListUser(ctx context.Context, app *pb.WaitListUser) (*empty.Empty, error) {
 	entry := &service.WaitlistUser{
 		Email: app.Email,
@@ -49,13 +61,13 @@ func (l *loggyServer) InsertWaitListUser(ctx context.Context, app *pb.WaitListUs
 }
 
 func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.Application, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	user := md["client_id"][0]
-	userId, _ := service.ValidateKey(user)
-	fmt.Println(userId)
+	userID, err := getUserIdFromMetaData(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add application. no user id")
+	}
 	entry := &service.Application{
 		ID:     app.Id,
-		UserID: userId,
+		UserID: userID,
 		Name:   app.Name,
 		Icon:   app.Icon,
 	}

@@ -50,12 +50,12 @@ func babble() string {
 }
 
 func main() {
-	userid := flag.String("userid", "", "required User id")
-	authorization := flag.String("authorization", "", "required Authorization")
+	apiClient := flag.String("client", "android", "client id")
+	apiKey := flag.String("apikey", "", "required User id")
 	url := flag.String("url", "localhost:50111", "Url")
 	flag.Parse()
 
-	if *authorization == "" || *userid == "" {
+	if *apiKey == "" {
 		flag.PrintDefaults()
 		return
 	}
@@ -65,11 +65,11 @@ func main() {
 		log.Fatalf("failed to connect: %s", err)
 	}
 	defer conn.Close()
-	header := metadata.New(map[string]string{"authorization": *authorization, "user_id": *userid})
+	header := metadata.New(map[string]string{"client": *apiClient, "api_key": *apiKey})
 	ctx := metadata.NewOutgoingContext(context.Background(), header)
 	client := pb.NewLoggyServiceClient(conn)
 	app, err := client.GetOrInsertApplication(ctx, &pb.Application{
-		Id:   *userid + "/sh.loggy",
+		Id:   "sh.loggy",
 		Name: "Loggy",
 		Icon: "loggy.svg",
 	})

@@ -56,14 +56,15 @@ var s = []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterRece
 
 //android methods - GetOrInsertApplication, GetOrInsertDevice, InsertSession, RegisterSend
 
-func InterceptAndVerify(server string, allowed []string, interceptor *AuthInterceptor, ctx context.Context) error {
+func InterceptAndVerify(server string, allowed []string, interceptor *AuthInterceptor, ctx context.Context) (context.Context, error) {
 	if !contains(allowed, server) {
-		err := interceptor.authorize(ctx, server)
+		ctx, err := interceptor.authorize(ctx, server)
 		if err != nil {
-			return err
+			return ctx, err
 		}
+		return ctx, nil
 	}
-	return nil
+	return ctx, nil
 }
 
 func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
@@ -74,7 +75,7 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		log.Println("--> unary interceptor: ", info.FullMethod)
-		err := InterceptAndVerify(info.FullMethod, s, interceptor, ctx)
+		ctx, err := InterceptAndVerify(info.FullMethod, s, interceptor, ctx)
 		if err != nil {
 			return ctx, err
 		}
@@ -90,9 +91,14 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 		handler grpc.StreamHandler,
 	) error {
 		log.Println("--> stream interceptor: ", info.FullMethod)
-		err := InterceptAndVerify(info.FullMethod, s, interceptor, stream.Context())
+		newCtx, err := InterceptAndVerify(info.FullMethod, s, interceptor, stream.Context())
 		if err != nil {
 			fmt.Println(err)
+		}
+
+		md, _ := metadata.FromIncomingContext(newCtx)
+		if len(md["user_id"]) != 0 {
+			stream.SendHeader(metadata.Pairs("user_id", md["user_id"][0]))
 		}
 		return handler(srv, stream)
 	}
@@ -119,7 +125,7 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		if len(token) == 0 {
 			return ctx, status.Errorf(codes.Unauthenticated, "authorization token is not provided")
 		}
-		if len(userID) == 0 {
+		if len(metaUserID) == 0 {
 			return ctx, status.Errorf(codes.Unauthenticated, "user id is not provided")
 		}
 		//Encode the data
@@ -170,9 +176,11 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		result := make(map[string]string)
 		json.Unmarshal(body, &result)
 		userID = result["user_id"]
-		sb := string(body)
-		fmt.Println(sb)
 	}
 
-	return metadata.AppendToOutgoingContext(ctx, "user_id", userID), nil
+	newMD := metadata.Pairs("user_id", userID)
+	ctx = metadata.NewIncomingContext(ctx, metadata.Join(md, newMD))
+
+	log.Println("Authorization Request granted")
+	return ctx, nil
 }
