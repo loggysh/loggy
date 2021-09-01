@@ -37,3 +37,24 @@ android client
 ===============
 
 client needs to generate a protobuf from `loggy/loggy.proto`
+
+
+Web
+- Login - Access Token
+- Rest API - Using Gin
+- db as users
+
+GRPC - Web
+- Access Token and User ID in the metadata
+
+GRPC Android
+- Client ID to validate (constant)
+- Associate client id with app id (web integration)
+
+Server
+- Access Token review
+- Secret to generate access token is hard coded
+
+- Client ID generation (short string)
+- Should be able the user id
+
