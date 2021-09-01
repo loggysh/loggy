@@ -161,26 +161,36 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		}
 		//Leverage Go's HTTP Post function to make request
 		resp, err := http.Get(authUrl() + "/verify/key?api_key=" + apiKey[0])
+
+		if resp.StatusCode == http.StatusOK {
+
+			defer resp.Body.Close()
+			//Read the response body
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return ctx, status.Errorf(codes.Unauthenticated, "invalid user")
+			}
+
+			result := make(map[string]string)
+			json.Unmarshal(body, &result)
+			userID = result["user_id"]
+
+		}
+
 		//Handle Error
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)
+			return ctx, status.Errorf(codes.Unauthenticated, "error occoured")
 		}
-
-		defer resp.Body.Close()
-		//Read the response body
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return ctx, status.Errorf(codes.Unauthenticated, "invalid user")
-		}
-
-		result := make(map[string]string)
-		json.Unmarshal(body, &result)
-		userID = result["user_id"]
 	}
 
-	newMD := metadata.Pairs("user_id", userID)
-	ctx = metadata.NewIncomingContext(ctx, metadata.Join(md, newMD))
+	if len(userID) > 0 {
+		newMD := metadata.Pairs("user_id", userID)
+		ctx = metadata.NewIncomingContext(ctx, metadata.Join(md, newMD))
+		log.Println("Authorization Request granted")
+	} else {
+		log.Println("Authorization failed")
+	}
 
-	log.Println("Authorization Request granted")
 	return ctx, nil
 }
