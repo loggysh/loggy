@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 
 	"google.golang.org/grpc"
@@ -15,6 +16,23 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+var envDomain = os.Getenv("DOMAIN")
+
+func domain() string {
+	if envDomain == "" {
+		return "localhost"
+	}
+	return envDomain
+}
+
+func authUrl() string {
+	url := url.URL{
+		Scheme: "http",
+		Host:   domain() + ":8080",
+	}
+	return url.String() + "/api/public"
+}
 
 type AuthInterceptor struct {
 	name string
@@ -81,10 +99,10 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 
 }
 
-func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) error {
+func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) (context.Context, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return status.Errorf(codes.Unauthenticated, "metadata is not provided")
+		return ctx, status.Errorf(codes.Unauthenticated, "metadata is not provided")
 	}
 
 	client := md["client"]
@@ -93,23 +111,25 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		log.Println("client in metadata is not provided. proceeding with default")
 	}
 
+	var userID = ""
+
 	if len(client) == 0 || client[0] == "web" {
 		token := md["authorization"]
-		userID := md["user_id"]
+		metaUserID := md["user_id"]
 		if len(token) == 0 {
-			return status.Errorf(codes.Unauthenticated, "authorization token is not provided")
+			return ctx, status.Errorf(codes.Unauthenticated, "authorization token is not provided")
 		}
 		if len(userID) == 0 {
-			return status.Errorf(codes.Unauthenticated, "user id is not provided")
+			return ctx, status.Errorf(codes.Unauthenticated, "user id is not provided")
 		}
 		//Encode the data
 		postBody, _ := json.Marshal(map[string]string{
 			"token":   token[0],
-			"user_id": userID[0],
+			"user_id": metaUserID[0],
 		})
 		responseBody := bytes.NewBuffer(postBody)
 		//Leverage Go's HTTP Post function to make request
-		resp, err := http.Post(BuildUrl(), "application/json", responseBody)
+		resp, err := http.Post(authUrl()+"/verify", "application/json", responseBody)
 		//Handle Error
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)
@@ -125,39 +145,34 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		sb := string(body)
 		fmt.Println(sb)
 		if sb != `{"message":"token valid"}` {
-			return status.Error(codes.PermissionDenied, "no permission to access this RPC")
+			userID = metaUserID[0]
 		}
 
 	} else if client[0] == "android" {
-		clientId := md["client_id"]
-		if len(clientId) == 0 {
-			return status.Errorf(codes.Unauthenticated, "api key is not provided")
+		apiKey := md["api_key"]
+		if len(apiKey) == 0 {
+			return ctx, status.Errorf(codes.Unauthenticated, "api key is not provided")
 		}
-		_, err := ValidateKey(clientId[0])
+		//Leverage Go's HTTP Post function to make request
+		resp, err := http.Get(authUrl() + "/verify/key?api_key=" + apiKey[0])
+		//Handle Error
 		if err != nil {
-			return status.Errorf(codes.Unauthenticated, "invalid user")
+			log.Fatalf("An Error Occured %v", err)
 		}
 
+		defer resp.Body.Close()
+		//Read the response body
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return ctx, status.Errorf(codes.Unauthenticated, "invalid user")
+		}
+
+		result := make(map[string]string)
+		json.Unmarshal(body, &result)
+		userID = result["user_id"]
+		sb := string(body)
+		fmt.Println(sb)
 	}
 
-	return nil
+	return metadata.AppendToOutgoingContext(ctx, "user_id", userID), nil
 }
-
-func BuildUrl() (s string) {
-	if os.Getenv("DOMAIN") == "localhost" {
-		authUrl := "http://localhost:8080/api/public/verify"
-		return authUrl
-	} else if len(os.Getenv("DOMAIN")) == 0 {
-		authUrl := "http://localhost:8080/api/public/verify"
-		return authUrl
-	} else {
-		authUrl := "http://" + os.Getenv("DOMAIN") + ":8080/api/public/verify"
-		return authUrl
-	}
-}
-
-// userid, application := apikey()
-// with user id from android
-// client id and client secret
-//
-// each user have apikey associated with application id?
