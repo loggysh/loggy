@@ -2,6 +2,7 @@ package controller
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tuxcanfly/loggy/auth/jwt"
@@ -9,8 +10,24 @@ import (
 	"gorm.io/gorm"
 )
 
+const authSecretKey = "c8b7b19b-19a0-4201-bc42-dfe6111d8819"
+const authService = "AuthService"
+const authExpirationInHours = 24
+
 type UserServer struct {
 	DB *gorm.DB
+}
+
+// LoginPayload login body
+type LoginPayload struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// LoginResponse token response
+type LoginResponse struct {
+	Token  string `json:"token"`
+	UserID string `json:"user_id"`
 }
 
 // Signup creates a user in db
@@ -56,18 +73,6 @@ func (u *UserServer) Signup(c *gin.Context) {
 	c.JSON(200, user)
 }
 
-// LoginPayload login body
-type LoginPayload struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-// LoginResponse token response
-type LoginResponse struct {
-	Token  string `json:"token"`
-	UserID string `json:"user_id"`
-}
-
 // Login logs users in
 func (u *UserServer) Login(c *gin.Context) {
 	var payload LoginPayload
@@ -103,9 +108,9 @@ func (u *UserServer) Login(c *gin.Context) {
 	}
 
 	jwtWrapper := jwt.Wrapper{
-		SecretKey:       "verysecretkey",
-		Issuer:          "AuthService",
-		ExpirationHours: 24,
+		SecretKey:       authSecretKey,
+		Issuer:          authService,
+		ExpirationHours: authExpirationInHours,
 	}
 
 	signedToken, err := jwtWrapper.GenerateToken(user.Email)
@@ -139,11 +144,13 @@ func (u *UserServer) Verify(c *gin.Context) {
 
 		return
 	}
+
 	jwtWrapper := jwt.Wrapper{
-		SecretKey:       "verysecretkey",
-		Issuer:          "AuthService",
-		ExpirationHours: 24,
+		SecretKey:       authSecretKey,
+		Issuer:          authService,
+		ExpirationHours: authExpirationInHours,
 	}
+
 	_, err = jwtWrapper.ValidateToken(payload.Token)
 	if err != nil {
 		log.Println(err)
@@ -153,7 +160,27 @@ func (u *UserServer) Verify(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"message": "token valid",
+	})
+}
+
+func (u *UserServer) VerifyAPIKey(c *gin.Context) {
+	var user models.User
+
+	apiKey := c.Query("api_key")
+
+	result := u.DB.Where("api_key = ?", apiKey).First(&user)
+
+	if result.Error == gorm.ErrRecordNotFound {
+		c.JSON(401, gin.H{
+			"msg": "invalid api key credentials",
+		})
+		c.Abort()
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user_id": user.ID,
 	})
 }

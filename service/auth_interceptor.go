@@ -8,13 +8,33 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+var envDomain = os.Getenv("DOMAIN")
+
+func domain() string {
+	if envDomain == "" {
+		return "localhost"
+	}
+	return envDomain
+}
+
+func authUrl() url.URL {
+	url := url.URL{
+		Scheme: "http",
+		Host:   domain() + ":8080",
+		Path:   "/api/public",
+	}
+	return url
+}
 
 type AuthInterceptor struct {
 	name string
@@ -38,14 +58,15 @@ var s = []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterRece
 
 //android methods - GetOrInsertApplication, GetOrInsertDevice, InsertSession, RegisterSend
 
-func InterceptAndVerify(server string, allowed []string, interceptor *AuthInterceptor, ctx context.Context) error {
+func InterceptAndVerify(server string, allowed []string, interceptor *AuthInterceptor, ctx context.Context) (context.Context, error) {
 	if !contains(allowed, server) {
-		err := interceptor.authorize(ctx, server)
+		ctx, err := interceptor.authorize(ctx, server)
 		if err != nil {
-			return err
+			return ctx, err
 		}
+		return ctx, nil
 	}
-	return nil
+	return ctx, nil
 }
 
 func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
@@ -56,7 +77,7 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		log.Println("--> unary interceptor: ", info.FullMethod)
-		err := InterceptAndVerify(info.FullMethod, s, interceptor, ctx)
+		ctx, err := InterceptAndVerify(info.FullMethod, s, interceptor, ctx)
 		if err != nil {
 			return ctx, err
 		}
@@ -72,44 +93,55 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 		handler grpc.StreamHandler,
 	) error {
 		log.Println("--> stream interceptor: ", info.FullMethod)
-		err := InterceptAndVerify(info.FullMethod, s, interceptor, stream.Context())
+		newCtx, err := InterceptAndVerify(info.FullMethod, s, interceptor, stream.Context())
 		if err != nil {
 			fmt.Println(err)
+		}
+
+		md, _ := metadata.FromIncomingContext(newCtx)
+		if len(md["user_id"]) != 0 {
+			stream.SendHeader(metadata.Pairs("user_id", md["user_id"][0]))
 		}
 		return handler(srv, stream)
 	}
 
 }
 
-func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) error {
+func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) (context.Context, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return status.Errorf(codes.Unauthenticated, "metadata is not provided")
+		return ctx, status.Errorf(codes.Unauthenticated, "metadata is not provided")
 	}
 
 	client := md["client"]
 
-	//if len(client) == 0 {
-	//	return status.Errorf(codes.Unauthenticated, "client in metadata is not provided")
-	//}
-
 	if len(client) == 0 {
+		log.Println("client in metadata is not provided. proceeding with default")
+	}
+
+	var userID = ""
+
+	if len(client) == 0 || client[0] == "web" {
 		token := md["authorization"]
-		userID := md["user_id"]
+		metaUserID := md["user_id"]
 		if len(token) == 0 {
-			return status.Errorf(codes.Unauthenticated, "authorization token is not provided")
+			return ctx, status.Errorf(codes.Unauthenticated, "authorization token is not provided")
 		}
-		if len(userID) == 0 {
-			return status.Errorf(codes.Unauthenticated, "user id is not provided")
+		if len(metaUserID) == 0 {
+			return ctx, status.Errorf(codes.Unauthenticated, "user id is not provided")
 		}
 		//Encode the data
 		postBody, _ := json.Marshal(map[string]string{
-			"Token":  token[0],
-			"UserID": userID[0],
+			"token":   token[0],
+			"user_id": metaUserID[0],
 		})
 		responseBody := bytes.NewBuffer(postBody)
 		//Leverage Go's HTTP Post function to make request
-		resp, err := http.Post(BuildUrl(), "application/json", responseBody)
+
+		u := authUrl()
+		u.Path = path.Join(u.Path, "/verify")
+
+		resp, err := http.Post(u.String(), "application/json", responseBody)
 		//Handle Error
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)
@@ -125,39 +157,53 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		sb := string(body)
 		fmt.Println(sb)
 		if sb != `{"message":"token valid"}` {
-			return status.Error(codes.PermissionDenied, "no permission to access this RPC")
+			userID = metaUserID[0]
 		}
 
 	} else if client[0] == "android" {
-		clientId := md["client_id"]
-		if len(clientId) == 0 {
-			return status.Errorf(codes.Unauthenticated, "api key is not provided")
+		apiKey := md["api_key"]
+		if len(apiKey) == 0 {
+			return ctx, status.Errorf(codes.Unauthenticated, "api key is not provided")
 		}
-		_, err := ValidateKey(clientId[0])
+		//Leverage Go's HTTP Post function to make request
+
+		u := authUrl()
+		u.Path = path.Join(u.Path, "/verify/key")
+		q, _ := url.ParseQuery(u.RawQuery)
+		q.Add("api_key", apiKey[0])
+		u.RawQuery = q.Encode()
+
+		resp, err := http.Get(u.String())
+
+		if resp.StatusCode == http.StatusOK {
+
+			defer resp.Body.Close()
+			//Read the response body
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return ctx, status.Errorf(codes.Unauthenticated, "invalid user")
+			}
+
+			result := make(map[string]string)
+			json.Unmarshal(body, &result)
+			userID = result["user_id"]
+
+		}
+
+		//Handle Error
 		if err != nil {
-			return status.Errorf(codes.Unauthenticated, "invalid user")
+			log.Fatalf("An Error Occured %v", err)
+			return ctx, status.Errorf(codes.Unauthenticated, "error occoured")
 		}
-
 	}
 
-	return nil
-}
-
-func BuildUrl() (s string) {
-	if os.Getenv("DOMAIN") == "localhost" {
-		authUrl := "http://localhost:8080/api/public/verify"
-		return authUrl
-	} else if len(os.Getenv("DOMAIN")) == 0 {
-		authUrl := "http://localhost:8080/api/public/verify"
-		return authUrl
+	if len(userID) > 0 {
+		newMD := metadata.Pairs("user_id", userID)
+		ctx = metadata.NewIncomingContext(ctx, metadata.Join(md, newMD))
+		log.Println("Authorization Request granted")
 	} else {
-		authUrl := "http://" + os.Getenv("DOMAIN") + ":8080/api/public/verify"
-		return authUrl
+		log.Println("Authorization failed")
 	}
-}
 
-// userid, application := apikey()
-// with user id from android
-// client id and client secret
-//
-// each user have apikey associated with application id?
+	return ctx, nil
+}

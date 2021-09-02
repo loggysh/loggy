@@ -13,7 +13,8 @@ import (
 
 func main() {
 	//create database
-	db, err := gorm.Open(sqlite.Open("db/test.db"), &gorm.Config{})
+	//Change database to userdb
+	db, err := gorm.Open(sqlite.Open("db/user.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatalln("could not create database", err)
 	}
@@ -38,6 +39,7 @@ func main() {
 	public.POST("/login", userServer.Login)
 	public.POST("/signup", userServer.Signup)
 	public.POST("/verify", userServer.Verify)
+	public.GET("/verify/key", userServer.VerifyAPIKey)
 
 	err = router.Run(":8080")
 	if err != nil {

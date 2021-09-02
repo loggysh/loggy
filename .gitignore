@@ -2,6 +2,8 @@
 loggy/loggy.pb.go
 loggy/loggy_grpc.pb.go
 test.db
+db/user.db
+db/test.db
 logs/
 loggy.index
 .kratos.yml
