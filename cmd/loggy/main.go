@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 	"sync"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -99,30 +98,26 @@ func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) 
 	if err != nil {
 		return nil, err
 	}
+	if len(device.Appid) == 0 {
+		return nil, fmt.Errorf("failed to add device. no app id")
+	}
 	entry := &service.Device{
 		ID:      deviceid,
+		AppID:   device.Appid,
 		Details: device.Details,
 	}
 	exists := &service.Device{}
 	l.db.Where(entry).FirstOrCreate(&exists)
 	return &pb.Device{
 		Id:      exists.ID.String(),
+		Appid:   exists.AppID,
 		Details: exists.Details,
 	}, nil
 }
 
 func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) (*pb.DeviceList, error) {
 	var devices []*pb.Device
-	var sessions []*service.Session
-	l.db.Where("application_id = ?", appid.Id).Select("distinct(device_id)").Find(&sessions)
-	for _, session := range sessions {
-		device := &service.Device{}
-		l.db.Where("id = ?", session.DeviceID).First(&device)
-		devices = append(devices, &pb.Device{
-			Id:      device.ID.String(),
-			Details: device.Details,
-		})
-	}
+	l.db.Where("application_id = ?", appid.Id).Find(&devices)
 	return &pb.DeviceList{Devices: devices}, nil
 }
 
@@ -277,11 +272,6 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 	}
 	return &pb.MessageList{Messages: messages}, nil
 }
-
-const (
-	secretKey     = "secret"
-	tokenDuration = 15 * time.Minute
-)
 
 func main() {
 	prefix := flag.String("prefix", "logs", "Prefix for logs. (logs)")

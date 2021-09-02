@@ -25,6 +25,7 @@ type Application struct {
 type Device struct {
 	Base
 	ID      uuid.UUID `gorm:"type:uuid;primary_key;"`
+	AppID   string    `gorm:"type:string;column:application_id;not null;default:empty;"`
 	Details string
 }
 
