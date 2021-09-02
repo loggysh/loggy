@@ -80,7 +80,7 @@ func main() {
 	fmt.Printf("Application ID: %s\n", app.Id)
 
 	device, err := client.GetOrInsertDevice(ctx, &pb.Device{
-		Id:      "5b11da9b-35a9-4c87-99b1-def6ca91ace7",
+		Id:      "5b11da9b-35a9-4c87-99b1-def6ca91ace8",
 		Appid:   app.Id,
 		Details: `{"device_name":"Sample","application_name":"Loggy","application_version":"0.3","android_os_version":"4.14.112+(5891938)","android_api_level":"29","device_type":"generic_x86","device_model":"Android SDK built for x86 sdk_gphone_x86"}`,
 	})
@@ -90,6 +90,14 @@ func main() {
 
 	fmt.Printf("Device ID: %s\n", device.Id)
 
+	deviceList, err := client.ListDevices(ctx, &pb.ApplicationId{
+		Id: app.Id,
+	})
+	if err != nil {
+		log.Fatalf("failed to get device list: %s", err)
+	}
+
+	fmt.Printf("Device List: %s\n", deviceList)
 	sessionid, err := client.InsertSession(ctx, &pb.Session{
 		Deviceid: device.Id,
 		Appid:    app.Id,
@@ -100,7 +108,11 @@ func main() {
 
 	fmt.Printf("Session ID: %s\n", sessionid)
 
-	_, err = client.RegisterSend(ctx, &pb.SessionId{Id: sessionid.Id})
+	streamMessages(client, ctx, sessionid)
+}
+
+func streamMessages(client pb.LoggyServiceClient, ctx context.Context, sessionid *pb.SessionId) {
+	_, err := client.RegisterSend(ctx, &pb.SessionId{Id: sessionid.Id})
 	if err != nil {
 		log.Fatalf("failed to register: %s", err)
 	}
@@ -121,4 +133,5 @@ func main() {
 	}()
 	<-waitc
 	stream.CloseSend()
+
 }
