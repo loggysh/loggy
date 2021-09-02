@@ -298,6 +298,7 @@ func main() {
 	db.AutoMigrate(&service.Device{})
 	db.AutoMigrate(&service.Session{})
 	db.AutoMigrate(&service.Message{})
+	db.AutoMigrate(&service.WaitlistUser{})
 
 	var indexer bleve.Index
 	if _, err := os.Stat(IndexPath); os.IsNotExist(err) {
