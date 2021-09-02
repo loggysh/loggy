@@ -5,7 +5,7 @@ import "google/protobuf/empty.proto";
 
 option go_package = "github.com/tuxcanfly/loggy/loggy;loggy";
 option java_multiple_files = true;
-option java_package = "loggy.sh";
+option java_package = "sh.loggy";
 option java_outer_classname = "LoggyProto";
 
 package loggy;
