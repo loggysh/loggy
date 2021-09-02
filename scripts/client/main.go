@@ -69,9 +69,9 @@ func main() {
 	ctx := metadata.NewOutgoingContext(context.Background(), header)
 	client := pb.NewLoggyServiceClient(conn)
 	app, err := client.GetOrInsertApplication(ctx, &pb.Application{
-		Id:   *userid + "/sh.loggy",
-		Name: "Loggy",
-		Icon: "loggy.svg",
+		Packagename: "/sh.loggy",
+		Name:        "Loggy",
+		Icon:        "loggy.svg",
 	})
 	if err != nil {
 		log.Fatalf("failed to add app: %s", err)

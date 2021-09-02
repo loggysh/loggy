@@ -42,7 +42,6 @@ type loggyServer struct {
 
 func getUserIdFromMetaData(ctx context.Context) (string, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
-	log.Println(md)
 	if len(md["user_id"]) == 0 {
 		return "", fmt.Errorf("no user id in metadata")
 	}
@@ -64,18 +63,24 @@ func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Applic
 	if err != nil {
 		return nil, fmt.Errorf("failed to add application. no user id")
 	}
+
+	//append userID to App ID
+	appID := userID + "/" + app.Packagename
+
 	entry := &service.Application{
-		ID:     app.Id,
-		UserID: userID,
-		Name:   app.Name,
-		Icon:   app.Icon,
+		ID:          appID,
+		UserID:      userID,
+		PackageName: app.Packagename,
+		Name:        app.Name,
+		Icon:        app.Icon,
 	}
 	exists := &service.Application{}
 	l.db.Where(entry).FirstOrCreate(&exists)
 	return &pb.Application{
-		Id:   exists.ID,
-		Name: exists.Name,
-		Icon: exists.Icon,
+		Id:          exists.ID,
+		Packagename: exists.PackageName,
+		Name:        exists.Name,
+		Icon:        exists.Icon,
 	}, nil
 }
 
@@ -85,9 +90,10 @@ func (l *loggyServer) ListApplications(ctx context.Context, userid *pb.UserId) (
 	l.db.Where("user_id = ?", userid.Id).Find(&entries)
 	for _, app := range entries {
 		apps = append(apps, &pb.Application{
-			Id:   app.ID,
-			Name: app.Name,
-			Icon: app.Icon,
+			Id:          app.ID,
+			Packagename: app.PackageName,
+			Name:        app.Name,
+			Icon:        app.Icon,
 		})
 	}
 	return &pb.ApplicationList{Apps: apps}, nil
