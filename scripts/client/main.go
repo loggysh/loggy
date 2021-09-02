@@ -103,7 +103,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to register: %s", err)
 	}
-	stream, _ := client.Send(ctx)
+	stream, err := client.Send(ctx)
+	if err != nil {
+		log.Fatalf("failed to send: %s", err)
+	}
 	waitc := make(chan struct{})
 
 	go func() {
