@@ -161,10 +161,9 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 
 		sb := string(body)
 		fmt.Println(sb)
-		if sb != `{"message":"token valid"}` {
+		if resp.StatusCode == http.StatusOK {
 			userID = metaUserID[0]
 		}
-
 	} else if client[0] == "android" {
 		apiKey := md["api_key"]
 		if len(apiKey) == 0 {

@@ -28,6 +28,7 @@ type LoginPayload struct {
 type LoginResponse struct {
 	Token  string `json:"token"`
 	UserID string `json:"user_id"`
+	APIKey string `json:"api_key"`
 }
 
 // Signup creates a user in db
@@ -126,6 +127,7 @@ func (u *UserServer) Login(c *gin.Context) {
 	tokenResponse := LoginResponse{
 		Token:  signedToken,
 		UserID: user.ID,
+		APIKey: user.APIKey,
 	}
 
 	c.JSON(200, tokenResponse)
