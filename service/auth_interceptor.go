@@ -54,7 +54,12 @@ func contains(slice []string, item string) bool {
 	return ok
 }
 
-var s = []string{"/loggy.LoggyService/Notify", "/loggy.LoggyService/RegisterReceive", "/loggy.LoggyService/Receive"}
+var ignoreAuthArray = []string{
+	"/loggy.LoggyService/Notify",
+	"/loggy.LoggyService/RegisterReceive",
+	"/loggy.LoggyService/Receive",
+	"/loggy/LoggyService/WaitListUser",
+}
 
 //android methods - GetOrInsertApplication, GetOrInsertDevice, InsertSession, RegisterSend
 
@@ -77,7 +82,7 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		log.Println("--> unary interceptor: ", info.FullMethod)
-		ctx, err := InterceptAndVerify(info.FullMethod, s, interceptor, ctx)
+		ctx, err := InterceptAndVerify(info.FullMethod, ignoreAuthArray, interceptor, ctx)
 		if err != nil {
 			return ctx, err
 		}
@@ -93,7 +98,7 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 		handler grpc.StreamHandler,
 	) error {
 		log.Println("--> stream interceptor: ", info.FullMethod)
-		newCtx, err := InterceptAndVerify(info.FullMethod, s, interceptor, stream.Context())
+		newCtx, err := InterceptAndVerify(info.FullMethod, ignoreAuthArray, interceptor, stream.Context())
 		if err != nil {
 			fmt.Println(err)
 		}
