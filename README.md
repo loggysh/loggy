@@ -59,6 +59,10 @@ Test With API key
 go run scripts/apikey/main.go -apikey=c32951dc491c4f05872747d1cc8a18cc
 ```
 
+data flow
+=========
+
+Users (id) -> Apps (id) -> Devices (id) -> Sessions (id) -> Messages
 
 android client
 ===============
