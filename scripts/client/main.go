@@ -69,7 +69,7 @@ func main() {
 	ctx := metadata.NewOutgoingContext(context.Background(), header)
 	client := pb.NewLoggyServiceClient(conn)
 	app, err := client.GetOrInsertApplication(ctx, &pb.Application{
-		Packagename: "/sh.loggy",
+		Packagename: "sh.loggy",
 		Name:        "Loggy",
 		Icon:        "loggy.svg",
 	})
