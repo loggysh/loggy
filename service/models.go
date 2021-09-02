@@ -16,10 +16,11 @@ type Base struct {
 
 type Application struct {
 	Base
-	ID     string
-	UserID string `gorm:"type:uuid;column:user_id;not null;default:empty;"`
-	Name   string
-	Icon   string
+	ID          string
+	UserID      string `gorm:"type:uuid;column:user_id;not null;default:empty;"`
+	PackageName string `gorm:"column:package_name;not null;default:empty;"`
+	Name        string
+	Icon        string
 }
 
 type Device struct {
