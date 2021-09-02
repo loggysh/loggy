@@ -27,6 +27,7 @@ message ApplicationList {
 message Device {
     string id = 1;
     string details = 2;
+    string appid = 3;
 }
 
 message DeviceId {
