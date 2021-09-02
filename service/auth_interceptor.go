@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -26,12 +27,13 @@ func domain() string {
 	return envDomain
 }
 
-func authUrl() string {
+func authUrl() url.URL {
 	url := url.URL{
 		Scheme: "http",
 		Host:   domain() + ":8080",
+		Path:   "/api/public",
 	}
-	return url.String() + "/api/public"
+	return url
 }
 
 type AuthInterceptor struct {
@@ -135,7 +137,11 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		})
 		responseBody := bytes.NewBuffer(postBody)
 		//Leverage Go's HTTP Post function to make request
-		resp, err := http.Post(authUrl()+"/verify", "application/json", responseBody)
+
+		u := authUrl()
+		u.Path = path.Join(u.Path, "/verify")
+
+		resp, err := http.Post(u.String(), "application/json", responseBody)
 		//Handle Error
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)
@@ -160,7 +166,14 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 			return ctx, status.Errorf(codes.Unauthenticated, "api key is not provided")
 		}
 		//Leverage Go's HTTP Post function to make request
-		resp, err := http.Get(authUrl() + "/verify/key?api_key=" + apiKey[0])
+
+		u := authUrl()
+		u.Path = path.Join(u.Path, "/verify/key")
+		q, _ := url.ParseQuery(u.RawQuery)
+		q.Add("api_key", apiKey[0])
+		u.RawQuery = q.Encode()
+
+		resp, err := http.Get(u.String())
 
 		if resp.StatusCode == http.StatusOK {
 
