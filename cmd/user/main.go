@@ -13,7 +13,6 @@ import (
 
 func main() {
 	//create database
-	//Change database to userdb
 	db, err := gorm.Open(sqlite.Open("db/user.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatalln("could not create database", err)

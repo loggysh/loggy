@@ -50,8 +50,8 @@ func babble() string {
 }
 
 func main() {
-	apiClient := flag.String("client", "android", "client id")
-	apiKey := flag.String("apikey", "", "required User id")
+	apiClient := flag.String("client", "android", "client")
+	apiKey := flag.String("apikey", "", "required api key")
 	url := flag.String("url", "localhost:50111", "Url")
 	flag.Parse()
 
