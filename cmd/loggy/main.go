@@ -122,8 +122,16 @@ func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) 
 }
 
 func (l *loggyServer) ListDevices(ctx context.Context, appid *pb.ApplicationId) (*pb.DeviceList, error) {
+	var entries []*service.Device
 	var devices []*pb.Device
-	l.db.Where("application_id = ?", appid.Id).Find(&devices)
+	l.db.Where("application_id = ?", appid.Id).Find(&entries)
+	for _, device := range entries {
+		devices = append(devices, &pb.Device{
+			Id:      device.ID.String(),
+			Details: device.Details,
+			Appid:   device.AppID,
+		})
+	}
 	return &pb.DeviceList{Devices: devices}, nil
 }
 

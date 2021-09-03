@@ -20,8 +20,8 @@ require (
 	github.com/tomogoma/go-typed-errors v0.0.0-20181222204503-0532faf740be
 	github.com/ugorji/go v1.2.6 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/net v0.0.0-20210825183410-e898025ed96a
-	golang.org/x/sys v0.0.0-20210902050250-f475640dd07b // indirect
+	golang.org/x/net v0.0.0-20210902165921-8d991716f632
+	golang.org/x/sys v0.0.0-20210903071746-97244b99971b // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2 // indirect
 	google.golang.org/grpc v1.40.0
