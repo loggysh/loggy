@@ -32,7 +32,6 @@ func logger(prefix, server *string, indexer bleve.Index, db *gorm.DB) {
 
 	for {
 		session, err := stream.Recv()
-		print(session)
 		if err == io.EOF {
 			break
 		}

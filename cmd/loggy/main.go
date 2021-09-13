@@ -12,7 +12,9 @@ import (
 	"sync"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/blevesearch/bleve"
@@ -46,7 +48,6 @@ func getUserIdFromMetaData(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("no user id in metadata")
 	}
 	userID := md["user_id"][0]
-	fmt.Println(userID)
 	return userID, nil
 }
 
@@ -61,7 +62,7 @@ func (l *loggyServer) InsertWaitListUser(ctx context.Context, app *pb.WaitListUs
 func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.Application, error) {
 	userID, err := getUserIdFromMetaData(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add application. no user id")
+		return nil, status.Error(codes.Unauthenticated, "failed to add application. user not found")
 	}
 
 	//append userID to App ID
@@ -105,7 +106,7 @@ func (l *loggyServer) GetOrInsertDevice(ctx context.Context, device *pb.Device) 
 		return nil, err
 	}
 	if len(device.Appid) == 0 {
-		return nil, fmt.Errorf("failed to add device. no app id")
+		return nil, status.Error(codes.InvalidArgument, "failed to add device. no app id")
 	}
 	entry := &service.Device{
 		ID:      deviceid,
