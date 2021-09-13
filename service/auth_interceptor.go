@@ -86,6 +86,7 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		if err != nil {
 			return ctx, err
 		}
+
 		return handler(ctx, req)
 	}
 }
@@ -135,79 +136,93 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		if len(metaUserID) == 0 {
 			return ctx, status.Errorf(codes.Unauthenticated, "user id is not provided")
 		}
-		//Encode the data
-		postBody, _ := json.Marshal(map[string]string{
-			"token":   token[0],
-			"user_id": metaUserID[0],
-		})
-		responseBody := bytes.NewBuffer(postBody)
-		//Leverage Go's HTTP Post function to make request
-
-		u := authUrl()
-		u.Path = path.Join(u.Path, "/verify")
-
-		resp, err := http.Post(u.String(), "application/json", responseBody)
-		//Handle Error
+		id, err := verifyToken(token[0], metaUserID[0])
 		if err != nil {
-			log.Fatalf("An Error Occured %v", err)
+			return ctx, status.Errorf(codes.Unauthenticated, "invalid user token or user id %v", err)
 		}
 
-		defer resp.Body.Close()
-		//Read the response body
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		userID = id
 
-		sb := string(body)
-		fmt.Println(sb)
-		if resp.StatusCode == http.StatusOK {
-			userID = metaUserID[0]
-		}
 	} else if client[0] == "android" {
 		apiKey := md["api_key"]
 		if len(apiKey) == 0 {
 			return ctx, status.Errorf(codes.Unauthenticated, "api key is not provided")
 		}
-		//Leverage Go's HTTP Post function to make request
 
-		u := authUrl()
-		u.Path = path.Join(u.Path, "/verify/key")
-		q, _ := url.ParseQuery(u.RawQuery)
-		q.Add("api_key", apiKey[0])
-		u.RawQuery = q.Encode()
+		id, err := verifyApiKey(apiKey[0])
 
-		resp, err := http.Get(u.String())
-
-		if resp.StatusCode == http.StatusOK {
-
-			defer resp.Body.Close()
-			//Read the response body
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return ctx, status.Errorf(codes.Unauthenticated, "invalid user")
-			}
-
-			result := make(map[string]string)
-			json.Unmarshal(body, &result)
-			userID = result["user_id"]
-
-		}
-
-		//Handle Error
 		if err != nil {
-			log.Fatalf("An Error Occured %v", err)
-			return ctx, status.Errorf(codes.Unauthenticated, "error occoured")
+			return ctx, status.Errorf(codes.Unauthenticated, "invalid api key %v", err)
 		}
+
+		userID = id
 	}
 
 	if len(userID) > 0 {
 		newMD := metadata.Pairs("user_id", userID)
 		ctx = metadata.NewIncomingContext(ctx, metadata.Join(md, newMD))
-		log.Println("Authorization Request granted")
+		log.Printf("authorization request granted for user %s", userID)
 	} else {
-		log.Println("Authorization failed")
+		log.Println("authorization failed")
 	}
 
 	return ctx, nil
+}
+
+func verifyToken(token string, userid string) (string, error) {
+	postBody, _ := json.Marshal(map[string]string{
+		"token":   token,
+		"user_id": userid,
+	})
+	responseBody := bytes.NewBuffer(postBody)
+
+	u := authUrl()
+	u.Path = path.Join(u.Path, "/verify")
+
+	resp, err := http.Post(u.String(), "application/json", responseBody)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		return userid, nil
+	}
+	return "", fmt.Errorf("status: %d - failed to verify for userid %s", resp.StatusCode, userid)
+}
+
+func verifyApiKey(apikey string) (string, error) {
+
+	u := authUrl()
+	u.Path = path.Join(u.Path, "/verify/key")
+	q, _ := url.ParseQuery(u.RawQuery)
+	q.Add("api_key", apikey)
+	u.RawQuery = q.Encode()
+
+	resp, err := http.Get(u.String())
+
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+
+		defer resp.Body.Close()
+		//Read the response body
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+
+		result := make(map[string]string)
+		json.Unmarshal(body, &result)
+		return result["user_id"], nil
+	}
+	return "", fmt.Errorf("status: %d - failed to verify for api key %s", resp.StatusCode, apikey)
 }
