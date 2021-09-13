@@ -62,7 +62,7 @@ func (l *loggyServer) InsertWaitListUser(ctx context.Context, app *pb.WaitListUs
 func (l *loggyServer) GetOrInsertApplication(ctx context.Context, app *pb.Application) (*pb.Application, error) {
 	userID, err := getUserIdFromMetaData(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, "failed to add application. user not found")
+		return nil, status.Errorf(codes.Unauthenticated, "failed to add application. user not found")
 	}
 
 	//append userID to App ID

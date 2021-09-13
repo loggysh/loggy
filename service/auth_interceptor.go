@@ -86,6 +86,7 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		if err != nil {
 			return ctx, err
 		}
+
 		return handler(ctx, req)
 	}
 }
@@ -137,8 +138,7 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		}
 		id, err := verifyToken(token[0], metaUserID[0])
 		if err != nil {
-			log.Fatalf("An Error Occured Verifying user %v", err)
-			return ctx, status.Errorf(codes.Unauthenticated, "Failed to verify user token")
+			return ctx, status.Errorf(codes.Unauthenticated, "invalid user token or user id %v", err)
 		}
 
 		userID = id
@@ -152,8 +152,7 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		id, err := verifyApiKey(apiKey[0])
 
 		if err != nil {
-			log.Fatalf("An Error Verifying Api Key %v", err)
-			return ctx, status.Errorf(codes.Unauthenticated, "Failed to verify api key")
+			return ctx, status.Errorf(codes.Unauthenticated, "invalid api key %v", err)
 		}
 
 		userID = id
@@ -162,9 +161,9 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 	if len(userID) > 0 {
 		newMD := metadata.Pairs("user_id", userID)
 		ctx = metadata.NewIncomingContext(ctx, metadata.Join(md, newMD))
-		log.Printf("Authorization Request granted for user %s", userID)
+		log.Printf("authorization request granted for user %s", userID)
 	} else {
-		log.Println("Authorization failed")
+		log.Println("authorization failed")
 	}
 
 	return ctx, nil

@@ -73,6 +73,7 @@ func main() {
 		Name:        "Loggy",
 		Icon:        "loggy.svg",
 	})
+
 	if err != nil {
 		log.Fatalf("failed to add app: %s", err)
 	}
