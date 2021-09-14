@@ -2,10 +2,11 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
 
 option go_package = "github.com/tuxcanfly/loggy/loggy;loggy";
 option java_multiple_files = true;
-option java_package = "sh.loggy";
+option java_package = "sh.loggy.internal";
 option java_outer_classname = "LoggyProto";
 
 package loggy;
@@ -100,13 +101,11 @@ message SessionStats {
   int32 crash_count = 5;
 }
 
-message LoginRequest {
-  string email = 1;
-  string password = 2;
-}
-
-message LoginResponse {
-  string access_token = 1;
+message Notification {
+  string type = 1;
+  string message = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  google.protobuf.Any detail = 4;
 }
 
 service LoggyService {
@@ -131,5 +130,8 @@ service LoggyService {
     rpc Receive (ReceiverId) returns (stream Message) {}
     rpc Search (Query) returns (MessageList) {}
 
-    rpc Login(LoginRequest) returns (LoginResponse) {}
+    rpc NotificationRegistry (google.protobuf.Empty) returns (stream UserId) {}
+    rpc RegisterNotificationSend (UserId) returns (google.protobuf.Empty) {}
+    rpc RegisterNotificationRecieve (UserId) returns (UserId) {}
+    rpc ReceiveNotification (UserId) returns (stream Notification) {}
 }
