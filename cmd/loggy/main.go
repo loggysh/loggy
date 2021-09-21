@@ -171,6 +171,7 @@ func (l *loggyServer) ListSessionMessages(ctx context.Context, sessionid *pb.Ses
 	l.db.Where("session_id = ?", sessionid.Id).Find(&entries)
 	for _, message := range entries {
 		messages = append(messages, &pb.Message{
+			Id:        int32(message.ID),
 			Sessionid: message.SessionID,
 			Msg:       message.Msg,
 			Timestamp: timestamppb.New(message.Timestamp),
@@ -279,6 +280,7 @@ func (l *loggyServer) Search(ctx context.Context, query *pb.Query) (*pb.MessageL
 			return nil, errors.New("msg not found")
 		}
 		messages = append(messages, &pb.Message{
+			Id:        int32(msg.ID),
 			Sessionid: msg.SessionID,
 			Msg:       msg.Msg,
 			Timestamp: timestamppb.New(msg.Timestamp),
