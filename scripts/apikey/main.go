@@ -122,11 +122,12 @@ func streamMessages(client pb.LoggyServiceClient, ctx context.Context, sessionid
 
 	go func() {
 		for {
-			time.Sleep(time.Second)
+			time.Sleep(10 * time.Second)
+			timestamp, _ := ptypes.TimestampProto(time.Now().UTC())
 			msg := &pb.Message{
 				Sessionid: sessionid.Id,
 				Msg:       babble(),
-				Timestamp: ptypes.TimestampNow(),
+				Timestamp: timestamp,
 			}
 			log.Printf("Sesssion - %d: %s\n", msg.Sessionid, msg.Msg)
 			stream.Send(msg)
