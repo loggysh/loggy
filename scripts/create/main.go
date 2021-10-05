@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	conn, err := grpc.Dial("loggy.sh:50111", grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:50111", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err)
 	}

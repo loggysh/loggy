@@ -58,7 +58,7 @@ var ignoreAuthArray = []string{
 	"/loggy.LoggyService/Notify",
 	"/loggy.LoggyService/RegisterReceive",
 	"/loggy.LoggyService/Receive",
-	"/loggy/LoggyService/WaitListUser",
+	"/loggy.LoggyService/InsertWaitListUser",
 }
 
 //android methods - GetOrInsertApplication, GetOrInsertDevice, InsertSession, RegisterSend
