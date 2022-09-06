@@ -24,9 +24,9 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/tuxcanfly/loggy/loggy"
-	pb "github.com/tuxcanfly/loggy/loggy"
-	"github.com/tuxcanfly/loggy/service"
+	"github.com/loggysh/loggy/loggy"
+	pb "github.com/loggysh/loggy/loggy"
+	"github.com/loggysh/loggy/service"
 )
 
 var IndexPath = "loggy.index"

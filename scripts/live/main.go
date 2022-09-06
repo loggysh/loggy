@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	pb "github.com/tuxcanfly/loggy/loggy"
+	pb "github.com/loggysh/loggy/loggy"
 )
 
 func main() {

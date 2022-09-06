@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tuxcanfly/loggy/auth/jwt"
-	"github.com/tuxcanfly/loggy/auth/models"
+	"github.com/loggysh/loggy/auth/jwt"
+	"github.com/loggysh/loggy/auth/models"
 	"gorm.io/gorm"
 )
 

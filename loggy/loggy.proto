@@ -4,7 +4,7 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
 
-option go_package = "github.com/tuxcanfly/loggy/loggy;loggy";
+option go_package = "github.com/loggysh/loggy/loggy;loggy";
 option java_multiple_files = true;
 option java_package = "sh.loggy.internal";
 option java_outer_classname = "LoggyProto";

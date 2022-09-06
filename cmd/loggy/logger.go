@@ -5,14 +5,14 @@ import (
 	"io"
 	"log"
 
-	"github.com/tuxcanfly/loggy/service"
+	"github.com/loggysh/loggy/service"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
 	"github.com/blevesearch/bleve"
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/tuxcanfly/loggy/loggy"
+	pb "github.com/loggysh/loggy/loggy"
 	"gorm.io/gorm"
 )
 
