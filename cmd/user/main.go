@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/tuxcanfly/loggy/auth/controller"
-	"github.com/tuxcanfly/loggy/auth/models"
+	"github.com/loggysh/loggy/auth/controller"
+	"github.com/loggysh/loggy/auth/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"

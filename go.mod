@@ -1,4 +1,4 @@
-module github.com/tuxcanfly/loggy
+module github.com/loggysh/loggy
 
 go 1.15
 

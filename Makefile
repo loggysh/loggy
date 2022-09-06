@@ -7,8 +7,8 @@ all:
 	echo "Done fetching and installing dependencies."
 	echo "Building proto files"
 	protoc --go_out=. -I loggy --go-grpc_out=require_unimplemented_servers=false:. loggy/loggy.proto
-	mv github.com/tuxcanfly/loggy/loggy/loggy_grpc.pb.go loggy/
-	mv github.com/tuxcanfly/loggy/loggy/loggy.pb.go loggy/
+	mv github.com/loggysh/loggy/loggy/loggy_grpc.pb.go loggy/
+	mv github.com/loggysh/loggy/loggy/loggy.pb.go loggy/
 	echo "Done building proto files for grpc"
 	go build -o loggy.exe ./cmd/loggy
 	go build -o user.exe ./cmd/user

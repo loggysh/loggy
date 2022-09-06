@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	pb "github.com/tuxcanfly/loggy/loggy"
+	pb "github.com/loggysh/loggy/loggy"
 )
 
 func main() {

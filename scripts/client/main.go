@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/golang/protobuf/ptypes"
-	pb "github.com/tuxcanfly/loggy/loggy"
+	pb "github.com/loggysh/loggy/loggy"
 )
 
 var words []string
