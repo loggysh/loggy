@@ -11,3 +11,4 @@ loggy.index
 .idea/
 test.sh
 main
+.DS_Store
