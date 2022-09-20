@@ -30,7 +30,7 @@ RUN go build -o loggy.exe ./cmd/loggy
 RUN	go build -o user.exe ./cmd/user
 
 ## Loggy server image
-FROM bitnami/minideb as loggy
+FROM alpine:latest as loggy
 
 RUN mkdir -p /go/src/loggy/loggy
 WORKDIR /go/src/loggy
