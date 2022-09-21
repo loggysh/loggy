@@ -1,0 +1,31 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: loggy
+  labels:
+    app: loggy
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loggy
+  template:
+    metadata:
+      labels:
+        app: loggy
+    spec:
+      volumes:
+        - name: loggy-db-pvc
+          persistentVolumeClaim:
+            claimName: loggy-pvc
+      containers:
+        - name: loggy
+          image: localhost:32000/loggy:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: web
+              containerPort: 80
+          volumeMounts:
+            - name: loggy-db-pvc
+              mountPath: /go/src/loggy/db
