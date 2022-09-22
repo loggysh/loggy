@@ -11,8 +11,8 @@ elif [ "$UNAME" == "Darwin" ] ; then
 fi
 
 go get -u google.golang.org/grpc && \
-go get -u google.golang.org/protobuf/cmd/protoc-gen-go && \
-go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc && \
+go install google.golang.org/protobuf/cmd/protoc-gen-go && \
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc && \
 go get -u google.golang.org/protobuf/proto && \
 go get -u github.com/gin-gonic/gin && \
 go get -u golang.org/x/crypto/bcrypt && \
