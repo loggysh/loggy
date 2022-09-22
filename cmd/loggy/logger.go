@@ -10,9 +10,9 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/blevesearch/bleve"
-	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/blevesearch/bleve/v2"
 	pb "github.com/loggysh/loggy/loggy"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 )
 

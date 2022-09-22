@@ -17,9 +17,9 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/blevesearch/bleve"
-	empty "github.com/golang/protobuf/ptypes/empty"
+	"github.com/blevesearch/bleve/v2"
 	uuid "github.com/satori/go.uuid"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -309,10 +309,18 @@ func main() {
 
 	var indexer bleve.Index
 	if _, err := os.Stat(IndexPath); os.IsNotExist(err) {
-		indexer, _ = bleve.New(IndexPath, bleve.NewIndexMapping())
+		indexer, err = bleve.New(IndexPath, bleve.NewIndexMapping())
+		if err != nil {
+			log.Fatalf("failed to create new index: %v", err)
+		}
+
 	} else {
-		indexer, _ = bleve.Open(IndexPath)
+		indexer, err = bleve.Open(IndexPath)
+		if err != nil {
+			log.Fatalf("failed to open index: %v", err)
+		}
 	}
+
 	if err != nil {
 		log.Fatalf("failed to create index: %v", err)
 	}
