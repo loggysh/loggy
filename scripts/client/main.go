@@ -15,8 +15,8 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/golang/protobuf/ptypes"
 	pb "github.com/loggysh/loggy/loggy"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var words []string
@@ -116,7 +116,7 @@ func main() {
 			msg := &pb.Message{
 				Sessionid: sessionid.Id,
 				Msg:       babble(),
-				Timestamp: ptypes.TimestampNow(),
+				Timestamp: timestamppb.New(),
 			}
 			log.Printf("Sesssion - %d: %s\n", msg.Sessionid, msg.Msg)
 			stream.Send(msg)

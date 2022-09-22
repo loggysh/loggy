@@ -15,8 +15,8 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/golang/protobuf/ptypes"
 	pb "github.com/loggysh/loggy/loggy"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var words []string
@@ -123,13 +123,13 @@ func streamMessages(client pb.LoggyServiceClient, ctx context.Context, sessionid
 	go func() {
 		for {
 			time.Sleep(10 * time.Second)
-			timestamp, _ := ptypes.TimestampProto(time.Now().UTC())
+			timestamp := timestamppb.New(time.Now().UTC())
 			msg := &pb.Message{
 				Sessionid: sessionid.Id,
 				Msg:       babble(),
 				Timestamp: timestamp,
 			}
-			log.Printf("Sesssion - %d: %s\n", msg.Sessionid, msg.Msg)
+			log.Printf("Sesssion - %s %d: %s\n", msg.Timestamp, msg.Sessionid, msg.Msg)
 			stream.Send(msg)
 		}
 	}()

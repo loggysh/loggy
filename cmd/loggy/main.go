@@ -18,8 +18,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/blevesearch/bleve"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	uuid "github.com/satori/go.uuid"
+	empty "google.golang.org/protobuf/types/known/emptypb"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
