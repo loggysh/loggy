@@ -3,7 +3,7 @@ module github.com/loggysh/loggy
 go 1.19
 
 require (
-	github.com/blevesearch/bleve v1.0.14
+	github.com/blevesearch/bleve/v2 v2.3.4
 	github.com/gin-gonic/gin v1.8.1
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/satori/go.uuid v1.2.0
@@ -18,7 +18,6 @@ require (
 require (
 	github.com/RoaringBitmap/roaring v1.2.1 // indirect
 	github.com/bits-and-blooms/bitset v1.3.3 // indirect
-	github.com/blevesearch/bleve/v2 v2.3.4 // indirect
 	github.com/blevesearch/bleve_index_api v1.0.3 // indirect
 	github.com/blevesearch/geo v0.1.14 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
@@ -71,5 +70,6 @@ require (
 	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20220921223823-23cae91e6737 // indirect
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
