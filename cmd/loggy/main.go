@@ -316,8 +316,6 @@ func main() {
 
 	} else {
 		indexer, err = bleve.Open(IndexPath)
-
-		log.Println(IndexPath)
 		if err != nil {
 			log.Fatalf("failed to open index: %v", err)
 		}
