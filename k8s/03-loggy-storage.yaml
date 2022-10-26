@@ -1,0 +1,8 @@
+# This PVC is to host the loggy db
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loggy-pvc
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 1Gi } }
